@@ -174,9 +174,13 @@ tr:hover td{background:#fafaf8}
       </button>
       <button class="btn btn-outline" id="btn-limpar-res" onclick="limparResultados()" style="display:none">Limpar</button>
       <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">↓ Baixar XLSX</button>
-      <button class="btn btn-tel-off hidden" id="btn-tel" onclick="buscarTelefones()" disabled>
-        ☎ Buscar Telefones
-      </button>
+      <span id="tel-wrap" style="display:none;align-items:center;gap:6px">
+        <button class="btn btn-tel-off" id="btn-tel" onclick="buscarTelefones()" disabled>
+          ☎ Buscar Telefones
+        </button>
+        <span id="tel-help" onclick="abrirModalProxy()" title="Como usar?"
+          style="display:none;width:20px;height:20px;border-radius:50%;background:#e8e8e5;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">?</span>
+      </span>
       <button class="toggle-btn hidden" id="btn-filtro-inst" onclick="toggleFiltroInst()" disabled style="opacity:.4;cursor:not-allowed">
         <span class="dot"></span> Ocultar médicos com cert. mais recente em outra inst.
       </button>
@@ -189,6 +193,39 @@ tr:hover td{background:#fafaf8}
     <div class="stats" id="stats"></div>
     <div class="tbl-wrap">
       <table><thead><tr id="th-ex"></tr></thead><tbody id="tb-ex"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Proxy -->
+<div class="modal-overlay" id="modal-proxy" onclick="if(event.target===this)fecharModalProxy()">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Busca de Telefones</div>
+        <div class="modal-sub">Como configurar</div>
+      </div>
+      <button class="modal-close" onclick="fecharModalProxy()">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--text);line-height:1.7">
+      <p style="margin-bottom:12px">Para buscar telefones dos médicos, você precisa do <b>Proxy DoctorID</b> rodando no seu computador.</p>
+      <div style="background:#fafaf8;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--teal)">Passo a passo:</div>
+        <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+          <li>Baixe o arquivo abaixo</li>
+          <li>Dê duplo clique para abrir</li>
+          <li>Digite seu email e senha do DoctorID</li>
+          <li>Clique em <b>Conectar</b> — minimize a janela</li>
+          <li>Volte aqui — o botão ficará verde</li>
+        </ol>
+      </div>
+      <a id="link-proxy-download" href="#" download="proxy_doctorid.py"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--teal);color:#fff;padding:11px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px">
+        ↓ Baixar Proxy DoctorID
+      </a>
+      <p style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center">
+        Requer Python instalado. <a href="https://www.python.org/downloads/" target="_blank" style="color:var(--teal)">Baixar Python</a>
+      </p>
     </div>
   </div>
 </div>
@@ -503,7 +540,7 @@ function renderTabela(d, instNm, progNm) {
   document.getElementById('res-ex').classList.remove('hidden');
   document.getElementById('btn-xl').classList.remove('hidden');
   document.getElementById('btn-limpar-res').style.display = '';
-  document.getElementById('btn-tel').classList.remove('hidden');
+  document.getElementById('tel-wrap').style.display = 'inline-flex';
   verificarProxy();
   // Só mostra filtro de última inst quando há instituição na pesquisa
   const _instVal = document.getElementById('ex-inst-sel').value;
@@ -674,7 +711,7 @@ function limparResultados() {
   document.getElementById('res-ex').classList.add('hidden');
   document.getElementById('btn-xl').classList.add('hidden');
   document.getElementById('btn-filtro-inst').classList.add('hidden');
-  document.getElementById('btn-tel').classList.add('hidden');
+  document.getElementById('tel-wrap').style.display = 'none';
   document.getElementById('btn-filtro-inst').classList.remove('active');
   document.getElementById('btn-filtro-inst').disabled = true;
   document.getElementById('btn-filtro-inst').style.opacity = '.4';
@@ -816,15 +853,26 @@ async function verificarProxy() {
     proxyAtivo = false;
   }
   const btn = document.getElementById('btn-tel');
+  const help = document.getElementById('tel-help');
   if (proxyAtivo) {
     btn.className = 'btn btn-tel';
     btn.disabled = false;
     btn.innerHTML = '☎ Buscar Telefones';
+    if (help) help.style.display = 'none';
   } else {
     btn.className = 'btn btn-tel-off';
     btn.disabled = true;
-    btn.innerHTML = '☎ Proxy não encontrado';
+    btn.innerHTML = '☎ Buscar Telefones';
+    if (help) help.style.display = 'inline-flex';
   }
+}
+
+function abrirModalProxy() {
+  document.getElementById('modal-proxy').classList.add('open');
+}
+
+function fecharModalProxy() {
+  document.getElementById('modal-proxy').classList.remove('open');
 }
 
 async function buscarTelefones() {
@@ -890,9 +938,8 @@ async function buscarTelefones() {
   }
 }
 
-// Verifica proxy ao carregar
-verificarProxy();
-setInterval(verificarProxy, 10000); // verifica a cada 10s
+// Verifica proxy só quando há resultados
+setInterval(() => { if (!document.getElementById('btn-tel').classList.contains('hidden')) verificarProxy(); }, 10000);
 
 // Verificação de senha
 async function verificarSenha() {
