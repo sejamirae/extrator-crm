@@ -172,7 +172,7 @@ tr:hover td{background:#fafaf8}
       <button class="btn btn-primary" id="btn-ex" onclick="pesquisar()">
         <span id="sp-ex" class="hidden spin">⟳</span> Pesquisar
       </button>
-      <button class="btn btn-outline" id="btn-limpar-res" onclick="limparResultados()" style="display:none">Limpar</button>
+      <button class="btn btn-outline" id="btn-limpar-res" onclick="location.reload()" style="display:none">Limpar</button>
       <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">↓ Baixar XLSX</button>
       <span id="tel-wrap" style="display:none;align-items:center;gap:6px">
         <button class="btn btn-tel-off" id="btn-tel" onclick="buscarTelefones()" disabled>
@@ -460,8 +460,11 @@ async function pesquisar() {
   rowsOriginal = [];
   Object.keys(crmMulti).forEach(k => delete crmMulti[k]);
   Object.keys(crmCache).forEach(k => delete crmCache[k]);
+  Object.keys(telefoneCache).forEach(k => delete telefoneCache[k]);
   multiRows = {};
+  telBuscandoTotal = 0; telBuscandoConcluido = 0;
   document.querySelectorAll('#stat-multi').forEach(el => el.remove());
+  document.querySelectorAll('#stat-tel').forEach(el => el.remove());
   document.getElementById('tb-ex').innerHTML = '';
   document.getElementById('th-ex').innerHTML = '';
   document.getElementById('stats').innerHTML = '';
@@ -774,18 +777,22 @@ function _xl() {
     const extras = (crmCache[crm]||[]).filter(c => (c['Nº Certificado']||'') !== (r['Nº Certificado']||''));
     if (extras.length > maxExtra) maxExtra = extras.length;
   });
-  // Adiciona telefone se disponível
+  const COLS_FIXAS = ['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais'];
   const enriched = rows.map(r => {
-    const tel = telefoneCache[r['CRM']||''] || '';
-    if (tel) r = {...r, 'Telefone': tel};
     const crm = r['CRM']||'';
     const total = crmMulti[crm]||1;
+    const tel = telefoneCache[crm] || '';
     const extras = (crmCache[crm]||[]).filter(c => (c['Nº Certificado']||'') !== (r['Nº Certificado']||''));
-    const obj = {...r, 'Múltiplas Formações': total>1?'SIM':'NÃO', 'Total Certificações': total};
+    // Constrói objeto na ordem fixa
+    const obj = {};
+    COLS_FIXAS.forEach(col => { obj[col] = r[col] ?? ''; });
+    obj['Múltiplas Formações'] = total > 1 ? 'SIM' : 'NÃO';
+    obj['Total Certificações'] = total;
     for (let i=0; i<maxExtra; i++) {
       const ex = extras[i];
       COLS_EXTRA.forEach(col => { obj[`Formação ${i+2} - ${col}`] = ex ? (ex[col]||'') : ''; });
     }
+    if (tel) obj['Telefone'] = tel;
     return obj;
   });
   const ws1 = XLSX.utils.json_to_sheet(enriched);
