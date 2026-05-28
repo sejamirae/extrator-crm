@@ -625,12 +625,15 @@ async function toggleFiltroInst() {
 
 // ── Limpar ───────────────────────────────────────────────────────────────────
 function limparResultados() {
+  // Limpa dados
   rows = []; rowsOriginal = [];
   filtroInstAtivo = false;
   Object.keys(crmMulti).forEach(k => delete crmMulti[k]);
   Object.keys(crmCache).forEach(k => delete crmCache[k]);
   multiRows = {};
   document.querySelectorAll('#stat-multi').forEach(el => el.remove());
+
+  // Limpa resultados visuais
   document.getElementById('res-ex').classList.add('hidden');
   document.getElementById('btn-xl').classList.add('hidden');
   document.getElementById('btn-filtro-inst').classList.add('hidden');
@@ -643,6 +646,30 @@ function limparResultados() {
   document.getElementById('stats').innerHTML = '';
   document.getElementById('tb-ex').innerHTML = '';
   document.getElementById('th-ex').innerHTML = '';
+
+  // Limpa todos os campos do formulário
+  document.getElementById('ex-medico').value = '';
+  document.getElementById('ex-crm').value = '';
+  document.getElementById('ex-cert').value = '';
+  document.getElementById('ex-ocorr').value = '';
+  document.getElementById('ex-ocorr').style.color = '';
+  document.getElementById('ex-ini').value = '';
+  document.getElementById('ex-ini').style.color = '';
+  document.getElementById('ex-fim').value = '';
+  document.getElementById('ex-fim').style.color = '';
+  document.getElementById('ex-uf').value = '';
+
+  // Limpa instituição e programa
+  document.getElementById('ex-inst-input').value = '';
+  document.getElementById('ex-inst-input').style.color = '#bbb';
+  document.getElementById('ex-inst-input').disabled = true;
+  document.getElementById('ex-inst-sel').value = '';
+  document.getElementById('ex-prog-input').value = '';
+  document.getElementById('ex-prog-input').style.color = '#bbb';
+  document.getElementById('ex-prog-input').disabled = true;
+  document.getElementById('ex-prog-sel').value = '';
+  _instituicoes = []; _programas = []; _programas_uf = []; _prog_combos = {};
+  S = {instId:'', instNm:'', progId:'', progNm:''};
 }
 
 // ── XLSX ─────────────────────────────────────────────────────────────────────
