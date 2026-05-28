@@ -133,11 +133,11 @@ tr:hover td{background:#fafaf8}
           <div id="ex-inst-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 7px 7px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>
           <input type="hidden" id="ex-inst-sel" value="">
         </div>
-        <div class="field" style="margin:0">
+        <div class="field" style="margin:0;position:relative">
           <label>Programa</label>
-          <select id="ex-prog-sel" style="color:#bbb;pointer-events:none">
-            <option value="" style="color:#bbb">Todos os Programas</option>
-          </select>
+          <input type="text" id="ex-prog-input" placeholder="Nome parcial..." autocomplete="off" disabled style="color:#bbb" oninput="filtrarProgramas()">
+          <div id="ex-prog-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 7px 7px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>
+          <input type="hidden" id="ex-prog-sel" value="">
         </div>
       </div>
       <div class="row2">
@@ -202,6 +202,7 @@ function parseDateBR(s){ if(!s) return new Date(0); const [d,m,y]=s.split('/'); 
 
 // ── Carregar Instituições ────────────────────────────────────────────────────
 let _instituicoes = [];
+let _programas = [];
 
 async function carregarInstituicoes() {
   const uf = document.getElementById('ex-uf').value;
@@ -210,12 +211,14 @@ async function carregarInstituicoes() {
   const progSel   = document.getElementById('ex-prog-sel');
   // Reset
   _instituicoes = [];
+  _programas = [];
   instInput.value = ''; instInput.disabled = true; instInput.placeholder = 'Nome parcial...';
   instInput.style.color = '#bbb';
   instSel.value = '';
-  progSel.innerHTML = '<option value="" style="color:#bbb">Todos os Programas</option>';
-  progSel.style.color = '#bbb'; progSel.style.pointerEvents = 'none';
-  S.instId = ''; S.instNm = '';
+  const progInput = document.getElementById('ex-prog-input');
+  progInput.value = ''; progInput.disabled = true; progInput.style.color = '#bbb';
+  document.getElementById('ex-prog-sel').value = '';
+  S.instId = ''; S.instNm = ''; S.progId = ''; S.progNm = '';
   if (!uf) return;
   instInput.placeholder = 'Carregando...';
   try {
@@ -265,29 +268,56 @@ document.addEventListener('click', e => {
     const dd = document.getElementById('ex-inst-dropdown');
     if (dd) dd.style.display = 'none';
   }
+  if (!e.target.closest('#ex-prog-input') && !e.target.closest('#ex-prog-dropdown')) {
+    const dd = document.getElementById('ex-prog-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
 });
 
 // ── Carregar Programas ───────────────────────────────────────────────────────
 async function carregarProgramas() {
   const instId = document.getElementById('ex-inst-sel').value;
-  const instSel = {value: instId, options: [{text: S.instNm}], selectedIndex: 0};
-  const progSel = document.getElementById('ex-prog-sel');
-  if (!instId) {
-    progSel.innerHTML = '<option value="" style="color:#bbb">Todos os Programas</option>';
-    progSel.style.color = '#bbb'; progSel.style.pointerEvents = 'none';
-    return;
-  }
-  const instNm = instSel.options[instSel.selectedIndex]?.text || '';
-  S.instId = instId; S.instNm = instNm;
-  progSel.innerHTML = '<option>Carregando...</option>';
-  progSel.style.color = '#bbb'; progSel.style.pointerEvents = 'none';
+  const progInput = document.getElementById('ex-prog-input');
+  const progSel   = document.getElementById('ex-prog-sel');
+  _programas = [];
+  progInput.value = ''; progInput.disabled = true;
+  progInput.placeholder = 'Nome parcial...'; progInput.style.color = '#bbb';
+  progSel.value = ''; S.progId = ''; S.progNm = '';
+  if (!instId) return;
+  progInput.placeholder = 'Carregando...';
   try {
     const r = await fetch(`${API}/programas/${instId}`);
     const d = await r.json();
-    progSel.innerHTML = '<option value="">Todos os Programas</option>' +
-      d.map(x => `<option value="${x.id}">${x.nome}</option>`).join('');
-    progSel.style.color = 'var(--text)'; progSel.style.pointerEvents = '';
-  } catch(e) { progSel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+    _programas = d;
+    progInput.placeholder = 'Nome parcial...';
+    progInput.disabled = false;
+    progInput.style.color = '';
+  } catch(e) { progInput.placeholder = 'Erro ao carregar'; }
+}
+
+function filtrarProgramas() {
+  const q = document.getElementById('ex-prog-input').value.toLowerCase().trim();
+  const dd = document.getElementById('ex-prog-dropdown');
+  if (!q) {
+    dd.style.display = 'none';
+    document.getElementById('ex-prog-sel').value = '';
+    S.progId = ''; S.progNm = '';
+    return;
+  }
+  const filtrados = _programas.filter(x => x.nome.toLowerCase().includes(q)).slice(0,30);
+  if (!filtrados.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = filtrados.map(x =>
+    `<div onclick="selecionarPrograma('${x.id}','${x.nome.replace(/'/g,"\'")}')"     style="padding:9px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"     onmouseenter="this.style.background='#f4f4f2'" onmouseleave="this.style.background=''">${x.nome}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function selecionarPrograma(id, nome) {
+  document.getElementById('ex-prog-input').value = nome;
+  document.getElementById('ex-prog-input').style.color = 'var(--text)';
+  document.getElementById('ex-prog-sel').value = id;
+  document.getElementById('ex-prog-dropdown').style.display = 'none';
+  S.progId = id; S.progNm = nome;
 }
 
 // ── Pesquisar ────────────────────────────────────────────────────────────────
@@ -302,9 +332,9 @@ async function pesquisar() {
   const instSel = document.getElementById('ex-inst-sel');
   const progSel = document.getElementById('ex-prog-sel');
   const inst = document.getElementById('ex-inst-sel').value || '';
-  const prog = progSel.value || '';
+  const prog = document.getElementById('ex-prog-sel').value || '';
   const instNm = inst ? (document.getElementById('ex-inst-input')?.value || S.instNm || '') : '';
-  const progNm = prog ? (progSel.options[progSel.selectedIndex]?.text || '') : '';
+  const progNm = prog ? (document.getElementById('ex-prog-input')?.value || S.progNm || '') : '';
 
   const hintNome = document.getElementById('hint-nome');
   if (hintNome) hintNome.style.display = (medico && !inst) ? 'block' : 'none';
