@@ -87,7 +87,7 @@ tr:hover td{background:#fafaf8}
       <div class="field" style="margin:0">
         <label>Nome</label>
         <input type="text" id="ex-medico" placeholder="Nome completo em CAIXA ALTA" oninput="this.value=this.value.toUpperCase()">
-        <div class="hint" id="hint-nome">💡 Para busca parcial por nome, selecione a instituição primeiro.</div>
+        <div class="hint" id="hint-nome">Para busca parcial por nome, selecione a instituição primeiro.</div>
       </div>
       <div class="field" style="margin:0">
         <label>CRM</label>
@@ -477,7 +477,13 @@ function renderTabela(d, instNm, progNm) {
   document.getElementById('res-ex').classList.remove('hidden');
   document.getElementById('btn-xl').classList.remove('hidden');
   document.getElementById('btn-limpar-res').style.display = '';
-  document.getElementById('btn-filtro-inst').classList.remove('hidden');
+  // Só mostra filtro de última inst quando há instituição na pesquisa
+  const _instVal = document.getElementById('ex-inst-sel').value;
+  if (_instVal) {
+    document.getElementById('btn-filtro-inst').classList.remove('hidden');
+  } else {
+    document.getElementById('btn-filtro-inst').classList.add('hidden');
+  }
   // Verifica CRMs em background
   multiRows = {};
   crmVerificandoTotal = 0; crmVerificandoConcluido = 0;
@@ -750,6 +756,8 @@ async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini,
 
   rows = todos;
   renderTabela(todos, '', progNm);
+  // Esconde filtro de última instituição — não faz sentido sem inst específica
+  document.getElementById('btn-filtro-inst').classList.add('hidden');
 
   if (todos.length === 0) {
     document.getElementById('log').innerHTML = 'Nenhum certificado encontrado para os filtros informados.';
