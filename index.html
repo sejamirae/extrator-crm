@@ -338,6 +338,7 @@
         <button class="btn btn-primary" id="btn-ex" onclick="pesquisar()">
           <span id="sp-ex" class="hidden spin">⟳</span> Pesquisar
         </button>
+        <button class="btn btn-outline" id="btn-limpar-res" onclick="limparResultados()" style="display:none">Limpar</button>
         <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">↓ Baixar XLSX</button>
         <button class="toggle-btn hidden" id="btn-filtro-inst" onclick="toggleFiltroInst()" disabled style="opacity:.4;cursor:not-allowed">
           <span class="dot"></span> Ocultar médicos com cert. mais recente em outra inst.
@@ -728,6 +729,7 @@ function renderTabela(d, instNm, progNm) {
   document.getElementById('res-ex').classList.remove('hidden');
   document.getElementById('btn-xl').classList.remove('hidden');
   document.getElementById('btn-filtro-inst').classList.remove('hidden');
+  document.getElementById('btn-limpar-res').style.display = '';
 
   // Verifica CRMs únicos em background (só contagem)
   multiRows = {};
@@ -993,6 +995,26 @@ function _xl() {
     // Atualiza stat de certificados
     const statEl = document.querySelector('#stats .stat');
     if (statEl) statEl.innerHTML = `<div class="stat-v">${d.length}</div><div class="stat-l">Certificados</div>`;
+  }
+
+  function limparResultados() {
+    rows = []; rowsOriginal = [];
+    document.getElementById('res-ex').classList.add('hidden');
+    document.getElementById('btn-xl').classList.add('hidden');
+    document.getElementById('btn-filtro-inst').classList.add('hidden');
+    document.getElementById('btn-limpar-res').style.display = 'none';
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('log').style.display = 'none';
+    document.getElementById('stats').innerHTML = '';
+    document.getElementById('tb-ex').innerHTML = '';
+    document.getElementById('th-ex').innerHTML = '';
+    Object.keys(crmMulti).forEach(k => delete crmMulti[k]);
+    Object.keys(crmCache).forEach(k => delete crmCache[k]);
+    multiRows = {};
+    filtroInstAtivo = false;
+    document.querySelectorAll('#stat-multi').forEach(el => el.remove());
+    const btnFiltro = document.getElementById('btn-filtro-inst');
+    if (btnFiltro) { btnFiltro.classList.remove('active'); btnFiltro.disabled=true; btnFiltro.style.opacity='.4'; }
   }
 
   function fecharModal() {
