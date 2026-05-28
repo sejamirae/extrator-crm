@@ -682,7 +682,13 @@ async function pesquisar() {
     const res  = await fetch(`${API}/certificados?${params.toString()}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    document.getElementById('log').innerHTML = '';
+    if (data.total === 0) {
+      document.getElementById('log').innerHTML = '<div style="color:var(--muted);font-size:13px">Nenhum certificado encontrado para os filtros informados.</div>';
+      document.getElementById('log').style.display = 'block';
+    } else {
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('log').style.display = 'none';
+    }
     rows = data.dados;
     renderTabela(data.dados, instNm, progNm);
   } catch(e) {
