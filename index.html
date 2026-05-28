@@ -127,11 +127,11 @@ tr:hover td{background:#fafaf8}
             <option>AC</option><option>AP</option><option>RR</option>
           </select>
         </div>
-        <div class="field" style="margin:0">
+        <div class="field" style="margin:0;position:relative">
           <label>Instituição</label>
-          <select id="ex-inst-sel" onchange="carregarProgramas()" style="color:#bbb;pointer-events:none">
-            <option value="" style="color:#bbb">Todas as Instituições</option>
-          </select>
+          <input type="text" id="ex-inst-input" placeholder="Nome parcial..." oninput="filtrarInstituicoes()" autocomplete="off" disabled style="color:#bbb">
+          <div id="ex-inst-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 7px 7px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>
+          <input type="hidden" id="ex-inst-sel" value="">
         </div>
         <div class="field" style="margin:0">
           <label>Programa</label>
@@ -201,32 +201,76 @@ function fmt(v){ if(!v) return ''; const [y,m,d]=v.split('-'); return `${d}/${m}
 function parseDateBR(s){ if(!s) return new Date(0); const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
 
 // ── Carregar Instituições ────────────────────────────────────────────────────
+let _instituicoes = [];
+
 async function carregarInstituicoes() {
   const uf = document.getElementById('ex-uf').value;
-  const instSel = document.getElementById('ex-inst-sel');
-  const progSel = document.getElementById('ex-prog-sel');
+  const instInput = document.getElementById('ex-inst-input');
+  const instSel   = document.getElementById('ex-inst-sel');
+  const progSel   = document.getElementById('ex-prog-sel');
+  // Reset
+  _instituicoes = [];
+  instInput.value = ''; instInput.disabled = true; instInput.placeholder = 'Nome parcial...';
+  instInput.style.color = '#bbb';
+  instSel.value = '';
   progSel.innerHTML = '<option value="" style="color:#bbb">Todos os Programas</option>';
   progSel.style.color = '#bbb'; progSel.style.pointerEvents = 'none';
-  if (!uf) {
-    instSel.innerHTML = '<option value="" style="color:#bbb">Todas as Instituições</option>';
-    instSel.style.color = '#bbb'; instSel.style.pointerEvents = 'none';
-    return;
-  }
-  instSel.innerHTML = '<option>Carregando...</option>';
-  instSel.style.color = '#bbb'; instSel.style.pointerEvents = 'none';
+  S.instId = ''; S.instNm = '';
+  if (!uf) return;
+  instInput.placeholder = 'Carregando...';
   try {
     const r = await fetch(`${API}/instituicoes/${uf}`);
     const d = await r.json();
-    instSel.innerHTML = '<option value="">Todas as Instituições</option>' +
-      d.map(x => `<option value="${x.id}">${x.nome}</option>`).join('');
-    instSel.style.color = 'var(--text)'; instSel.style.pointerEvents = '';
-  } catch(e) { instSel.innerHTML = '<option value="">Erro ao carregar</option>'; }
+    _instituicoes = d;
+    instInput.placeholder = 'Nome parcial...';
+    instInput.disabled = false;
+    instInput.style.color = '';
+  } catch(e) { instInput.placeholder = 'Erro ao carregar'; }
 }
+
+function filtrarInstituicoes() {
+  const q = document.getElementById('ex-inst-input').value.toLowerCase().trim();
+  const dd = document.getElementById('ex-inst-dropdown');
+  // Se limpou o campo, reseta seleção
+  if (!q) {
+    dd.style.display = 'none';
+    document.getElementById('ex-inst-sel').value = '';
+    S.instId = ''; S.instNm = '';
+    document.getElementById('ex-prog-sel').innerHTML = '<option value="" style="color:#bbb">Todos os Programas</option>';
+    document.getElementById('ex-prog-sel').style.color = '#bbb';
+    document.getElementById('ex-prog-sel').style.pointerEvents = 'none';
+    return;
+  }
+  const filtradas = _instituicoes.filter(x => x.nome.toLowerCase().includes(q)).slice(0,30);
+  if (!filtradas.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = filtradas.map(x =>
+    `<div onclick="selecionarInstituicao('${x.id}','${x.nome.replace(/'/g,"\'")}')"     style="padding:9px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
+     onmouseenter="this.style.background='#f4f4f2'" onmouseleave="this.style.background=''">${x.nome}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+async function selecionarInstituicao(id, nome) {
+  document.getElementById('ex-inst-input').value = nome;
+  document.getElementById('ex-inst-input').style.color = 'var(--text)';
+  document.getElementById('ex-inst-sel').value = id;
+  document.getElementById('ex-inst-dropdown').style.display = 'none';
+  S.instId = id; S.instNm = nome;
+  await carregarProgramas();
+}
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ex-inst-input') && !e.target.closest('#ex-inst-dropdown')) {
+    const dd = document.getElementById('ex-inst-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 // ── Carregar Programas ───────────────────────────────────────────────────────
 async function carregarProgramas() {
-  const instSel = document.getElementById('ex-inst-sel');
-  const instId = instSel.value;
+  const instId = document.getElementById('ex-inst-sel').value;
+  const instSel = {value: instId, options: [{text: S.instNm}], selectedIndex: 0};
   const progSel = document.getElementById('ex-prog-sel');
   if (!instId) {
     progSel.innerHTML = '<option value="" style="color:#bbb">Todos os Programas</option>';
@@ -257,9 +301,9 @@ async function pesquisar() {
   const fim    = document.getElementById('ex-fim').value;
   const instSel = document.getElementById('ex-inst-sel');
   const progSel = document.getElementById('ex-prog-sel');
-  const inst = instSel.value || '';
+  const inst = document.getElementById('ex-inst-sel').value || '';
   const prog = progSel.value || '';
-  const instNm = inst ? (instSel.options[instSel.selectedIndex]?.text || '') : '';
+  const instNm = inst ? (document.getElementById('ex-inst-input')?.value || S.instNm || '') : '';
   const progNm = prog ? (progSel.options[progSel.selectedIndex]?.text || '') : '';
 
   const hintNome = document.getElementById('hint-nome');
