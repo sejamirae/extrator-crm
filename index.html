@@ -221,11 +221,22 @@ tr:hover td{background:#fafaf8}
       </div>
       <a id="link-proxy-download" href="#" download="proxy_doctorid.py"
         style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--teal);color:#fff;padding:11px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px">
-        ↓ Baixar Proxy DoctorID
+        ↓ Baixar proxy_doctorid.py
       </a>
-      <p style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center">
-        Requer Python instalado. <a href="https://www.python.org/downloads/" target="_blank" style="color:var(--teal)">Baixar Python</a>
-      </p>
+
+      <div style="margin-top:16px;background:#f4f4f2;border-radius:8px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Após baixar, abra o terminal e execute:</div>
+        <div style="background:#1a1a1a;border-radius:6px;padding:10px 12px;font-family:monospace;font-size:12px;color:#e8e8e5;line-height:1.8;position:relative">
+          <div style="color:#8a8a82">// 1. Instala as dependências (só na primeira vez)</div>
+          <div>pip install httpx keyring pillow</div>
+          <div style="margin-top:6px;color:#8a8a82">// 2. Roda o proxy</div>
+          <div>python proxy_doctorid.py</div>
+          <button onclick="copiarComandos()" style="position:absolute;top:8px;right:8px;background:#333;border:none;color:#bbb;font-size:11px;border-radius:4px;padding:3px 8px;cursor:pointer">Copiar</button>
+        </div>
+        <p style="margin-top:10px;font-size:11px;color:var(--muted)">
+          Não tem Python? <a href="https://www.python.org/downloads/" target="_blank" style="color:var(--teal)">Baixar Python aqui</a> — instale marcando a opção <b>"Add to PATH"</b>
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -869,6 +880,15 @@ async function verificarProxy() {
 
 function abrirModalProxy() {
   document.getElementById('modal-proxy').classList.add('open');
+}
+
+function copiarComandos() {
+  navigator.clipboard.writeText('pip install httpx keyring pillow\npython proxy_doctorid.py')
+    .then(() => { 
+      const btn = event.target;
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
 }
 
 function fecharModalProxy() {
