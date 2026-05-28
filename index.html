@@ -174,6 +174,9 @@ tr:hover td{background:#fafaf8}
       </button>
       <button class="btn btn-outline" id="btn-limpar-res" onclick="limparResultados()" style="display:none">Limpar</button>
       <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">↓ Baixar XLSX</button>
+      <button class="btn btn-tel-off hidden" id="btn-tel" onclick="buscarTelefones()" disabled>
+        ☎ Buscar Telefones
+      </button>
       <button class="toggle-btn hidden" id="btn-filtro-inst" onclick="toggleFiltroInst()" disabled style="opacity:.4;cursor:not-allowed">
         <span class="dot"></span> Ocultar médicos com cert. mais recente em outra inst.
       </button>
@@ -212,6 +215,8 @@ const crmCache = {}, crmMulti = {};
 let multiRows = {};
 let filtroInstAtivo = false;
 let crmVerificandoTotal = 0, crmVerificandoConcluido = 0;
+const telefoneCache = {};  // crm -> telefone
+let proxyAtivo = false;
 
 function fmt(v){ if(!v) return ''; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; }
 function parseDateBR(s){ if(!s) return new Date(0); const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
@@ -480,7 +485,9 @@ function renderTabela(d, instNm, progNm) {
   document.getElementById('stats').innerHTML =
     `<div class="stat"><div class="stat-v">${d.length}</div><div class="stat-l">Certificados</div></div>` + extra.join('');
   const crmColIdx = cols.findIndex(c => c === 'CRM');
-  document.getElementById('th-ex').innerHTML = cols.map(c => `<th>${c}</th>`).join('');
+  // Adiciona coluna Telefone se proxy ativo
+  const colsTel = proxyAtivo ? [...cols, 'Telefone'] : cols;
+  document.getElementById('th-ex').innerHTML = colsTel.map(c => `<th>${c}</th>`).join('');
   document.getElementById('tb-ex').innerHTML = d.map((r, i) => {
     const crm = r['CRM'] || '';
     const tds = cols.map((c, ci) => {
@@ -488,11 +495,16 @@ function renderTabela(d, instNm, progNm) {
       if (ci === crmColIdx) return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${val}</td>`;
       return `<td>${val}</td>`;
     });
-    return `<tr>${tds.join('')}</tr>`;
+    // Coluna de telefone
+    const tel = telefoneCache[crm] || '';
+    const telTd = proxyAtivo ? `<td id="tel-${i}" class="tel-cell">${tel}</td>` : '';
+    return `<tr>${tds.join('')}${telTd}</tr>`;
   }).join('');
   document.getElementById('res-ex').classList.remove('hidden');
   document.getElementById('btn-xl').classList.remove('hidden');
   document.getElementById('btn-limpar-res').style.display = '';
+  document.getElementById('btn-tel').classList.remove('hidden');
+  verificarProxy();
   // Só mostra filtro de última inst quando há instituição na pesquisa
   const _instVal = document.getElementById('ex-inst-sel').value;
   if (_instVal) {
@@ -520,7 +532,10 @@ function renderTabelaDados(d) {
       if (ci === crmColIdx) return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${val}</td>`;
       return `<td>${val}</td>`;
     });
-    return `<tr>${tds.join('')}</tr>`;
+    // Coluna de telefone
+    const tel = telefoneCache[crm] || '';
+    const telTd = proxyAtivo ? `<td id="tel-${i}" class="tel-cell">${tel}</td>` : '';
+    return `<tr>${tds.join('')}${telTd}</tr>`;
   }).join('');
   d.forEach((r, i) => { const crm = r['CRM']||''; if (crmMulti[crm]) colocarBadge(crm, [i], crmMulti[crm]); });
   const statEl = document.querySelector('#stats .stat');
@@ -659,6 +674,7 @@ function limparResultados() {
   document.getElementById('res-ex').classList.add('hidden');
   document.getElementById('btn-xl').classList.add('hidden');
   document.getElementById('btn-filtro-inst').classList.add('hidden');
+  document.getElementById('btn-tel').classList.add('hidden');
   document.getElementById('btn-filtro-inst').classList.remove('active');
   document.getElementById('btn-filtro-inst').disabled = true;
   document.getElementById('btn-filtro-inst').style.opacity = '.4';
@@ -710,7 +726,10 @@ function _xl() {
     const extras = (crmCache[crm]||[]).filter(c => (c['Nº Certificado']||'') !== (r['Nº Certificado']||''));
     if (extras.length > maxExtra) maxExtra = extras.length;
   });
+  // Adiciona telefone se disponível
   const enriched = rows.map(r => {
+    const tel = telefoneCache[r['CRM']||''] || '';
+    if (tel) r = {...r, 'Telefone': tel};
     const crm = r['CRM']||'';
     const total = crmMulti[crm]||1;
     const extras = (crmCache[crm]||[]).filter(c => (c['Nº Certificado']||'') !== (r['Nº Certificado']||''));
@@ -783,6 +802,97 @@ async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini,
   document.getElementById('btn-ex').disabled = false;
   document.getElementById('sp-ex').classList.add('hidden');
 }
+
+// ── Proxy DoctorID ────────────────────────────────────────────────────────
+const PROXY = 'http://localhost:9977';
+let telBuscandoTotal = 0, telBuscandoConcluido = 0;
+
+async function verificarProxy() {
+  try {
+    const r = await fetch(`${PROXY}/ping`, {signal: AbortSignal.timeout(2000)});
+    const d = await r.json();
+    proxyAtivo = d.autenticado === true;
+  } catch(e) {
+    proxyAtivo = false;
+  }
+  const btn = document.getElementById('btn-tel');
+  if (proxyAtivo) {
+    btn.className = 'btn btn-tel';
+    btn.disabled = false;
+    btn.innerHTML = '☎ Buscar Telefones';
+  } else {
+    btn.className = 'btn btn-tel-off';
+    btn.disabled = true;
+    btn.innerHTML = '☎ Proxy não encontrado';
+  }
+}
+
+async function buscarTelefones() {
+  if (!proxyAtivo || !rows.length) return;
+  const crmsUnicos = [...new Set(rows.map(r => r['CRM']).filter(c => c && !telefoneCache[c]))];
+  if (!crmsUnicos.length) return;
+
+  telBuscandoTotal = crmsUnicos.length;
+  telBuscandoConcluido = 0;
+
+  // Cria stat de telefones
+  const statsEl = document.getElementById('stats');
+  document.querySelectorAll('#stat-tel').forEach(el => el.remove());
+  const s = document.createElement('div');
+  s.className = 'stat'; s.id = 'stat-tel';
+  s.innerHTML = `<div class="stat-v" style="color:var(--green)">0 <span id="spin-tel" style="font-size:14px;color:var(--muted);animation:spin .7s linear infinite;display:inline-block">⟳</span></div><div class="stat-l">Telefones</div>`;
+  statsEl.appendChild(s);
+
+  // Garante coluna Telefone no header
+  const thEl = document.getElementById('th-ex');
+  if (!thEl.innerHTML.includes('Telefone')) {
+    thEl.innerHTML += '<th>Telefone</th>';
+    // Adiciona células vazias nas linhas existentes
+    document.querySelectorAll('#tb-ex tr').forEach((tr, i) => {
+      const crm = rows[i]?.['CRM'] || '';
+      const td = document.createElement('td');
+      td.id = `tel-${i}`;
+      td.className = 'tel-cell';
+      td.textContent = telefoneCache[crm] || '';
+      tr.appendChild(td);
+    });
+  }
+
+  // Busca em paralelo (lotes de 5)
+  const BATCH = 5;
+  for (let i = 0; i < crmsUnicos.length; i += BATCH) {
+    const lote = crmsUnicos.slice(i, i + BATCH);
+    await Promise.all(lote.map(async crm => {
+      try {
+        const r = await fetch(`${PROXY}/telefone?crm=${encodeURIComponent(crm)}`, 
+          {signal: AbortSignal.timeout(15000)});
+        const d = await r.json();
+        telefoneCache[crm] = d.telefone || '';
+        // Atualiza células na tabela
+        rows.forEach((row, idx) => {
+          if ((row['CRM']||'') === crm) {
+            const el = document.getElementById(`tel-${idx}`);
+            if (el) el.textContent = d.telefone || '';
+          }
+        });
+      } catch(e) { telefoneCache[crm] = ''; }
+      telBuscandoConcluido++;
+      // Atualiza contador
+      const encontrados = Object.values(telefoneCache).filter(t => t).length;
+      const statEl = document.getElementById('stat-tel');
+      if (statEl) statEl.querySelector('.stat-v').innerHTML = 
+        `<span style="color:var(--green)">${encontrados}</span> <span id="spin-tel" style="font-size:14px;color:var(--muted);animation:spin .7s linear infinite;display:inline-block">⟳</span>`;
+      if (telBuscandoConcluido >= telBuscandoTotal) {
+        const spin = document.getElementById('spin-tel');
+        if (spin) { spin.innerHTML = ' ✓'; spin.style.animation = 'none'; spin.style.color = 'var(--green)'; }
+      }
+    }));
+  }
+}
+
+// Verifica proxy ao carregar
+verificarProxy();
+setInterval(verificarProxy, 10000); // verifica a cada 10s
 
 // Verificação de senha
 async function verificarSenha() {
