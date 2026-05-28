@@ -172,57 +172,10 @@
 <div class="main">
   <div class="tabs">
     <button class="tab active" onclick="go('inst')">Instituições</button>
-    <button class="tab" id="tab-btn-prog" onclick="go('prog')" style="display:none">Programas</button>
     <button class="tab" onclick="go('ex')">Pesquisar</button>
   </div>
 
-  <!-- TAB 1: Instituições -->
-  <div class="panel active" id="tab-inst">
-    <div class="banner" id="b-inst">
-      <span class="chk">✓</span>
-      <div class="inf">
-        <div class="lbl">Instituição selecionada</div>
-        <div class="nm" id="b-inst-nm">—</div>
-        <div class="id" id="b-inst-id">—</div>
-      </div>
-      <div class="flex-gap">
-        <button class="btn btn-primary btn-sm" onclick="go('prog');buscarProgAuto()">Ver Programas</button>
-        <button class="btn btn-outline btn-sm" onclick="go('ex');atualizarCtx()">Ir para Pesquisar</button>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:grid;grid-template-columns:110px 1fr auto;gap:12px;align-items:end">
-        <div class="field" style="margin:0">
-          <label>UF</label>
-          <select id="uf">
-            <option value="" selected style="color:#bbb">–</option>
-            <option>SP</option><option>RJ</option><option>MG</option><option>RS</option>
-            <option>PR</option><option>BA</option><option>SC</option><option>GO</option>
-            <option>PE</option><option>CE</option><option>DF</option><option>ES</option>
-            <option>PA</option><option>MT</option><option>MS</option><option>AM</option>
-            <option>RN</option><option>PB</option><option>AL</option><option>PI</option>
-            <option>MA</option><option>SE</option><option>TO</option><option>RO</option>
-            <option>AC</option><option>AP</option><option>RR</option>
-          </select>
-        </div>
-        <div class="field" style="margin:0">
-          <label>Nome</label>
-          <input type="text" id="filtro" placeholder="Nome parcial" onkeydown="if(event.key==='Enter')buscarInst()">
-        </div>
-        <button class="btn btn-primary" id="btn-bi" onclick="buscarInst()">
-          <span id="sp-i" class="hidden spin">⟳</span> Buscar
-        </button>
-      </div>
-    </div>
-    <div id="res-inst" class="hidden">
-      <div class="tbl-wrap">
-        <table><thead><tr><th>Instituição</th><th></th></tr></thead>
-        <tbody id="tb-inst"></tbody></table>
-      </div>
-    </div>
-  </div>
 
-  <!-- TAB 2: Programas -->
   <div class="panel" id="tab-prog">
     <div class="banner" id="b-prog">
       <span class="chk">✓</span>
@@ -232,7 +185,7 @@
         <div class="id" id="b-prog-id">—</div>
       </div>
       <div class="flex-gap">
-        <button class="btn btn-primary btn-sm" onclick="go('ex');atualizarCtx()">Ir para Pesquisar</button>
+        <button class="btn btn-primary btn-sm" onclick="atualizarCtx()">Ir para Pesquisar</button>
       </div>
     </div>
     <div class="card" id="prog-card-inst" style="background:#eef7f2;border-color:#b8dcc8">
@@ -248,7 +201,7 @@
   </div>
 
   <!-- TAB 3: Pesquisar -->
-  <div class="panel" id="tab-ex">
+  <div class="panel active" id="tab-ex">
 
     <!-- Contexto selecionado -->
     <div id="ctx" style="display:none;background:#eef7f2;border:1px solid #b8dcc8;border-radius:9px;padding:12px 18px;margin-bottom:14px;gap:20px;flex-wrap:wrap;align-items:center">
@@ -363,10 +316,7 @@ let S = { instId:'', instNm:'', progId:'', progNm:'' };
 let rows = [];
 
 function go(t) {
-  ['inst','prog','ex'].forEach((n,i) => {
-    document.querySelectorAll('.tab')[i].classList.toggle('active', n===t);
-    document.getElementById('tab-'+n).classList.toggle('active', n===t);
-  });
+  // Só uma aba agora
 }
 
 function fmt(v) { if(!v) return ''; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; }
@@ -480,13 +430,11 @@ async function selInst(id, nm) {
   if (statMulti) statMulti.remove();
   document.getElementById('b-inst-nm').textContent = nm;
   document.getElementById('b-inst-id').textContent = 'ID: '+id;
-  document.getElementById('b-inst').classList.add('on');
   // Mostra aba Programas
-  document.getElementById('tab-btn-prog').style.display = '';
   // Atualiza nome no card de programas
   document.getElementById('prog-inst-nome').textContent = nm;
   // Vai para aba programas
-  go('prog');
+  
   // Carrega programas
   await buscarProg();
 }
@@ -495,27 +443,23 @@ async function selInst(id, nm) {
 async function buscarProg() {
   const id = S.instId;
   if (!id) { alert('Selecione uma instituição primeiro.'); return; }
-  const sp = document.getElementById('sp-p');
   if (sp) sp.classList.remove('hidden');
   try {
     const r = await fetch(`${API}/programas/${id}`);
     const d = await r.json();
     if (d.error) throw new Error(d.error);
-    document.getElementById('tb-prog').innerHTML = d.map(x => `
       <tr>
         <td style="color:var(--muted);font-size:11px">${x.id}</td>
         <td style="font-weight:500">${x.nome}</td>
         <td><button class="btn btn-outline btn-sm" onclick="selProg('${x.id}','${x.nome.replace(/'/g,"\'")}')">Selecionar</button></td>
       </tr>`).join('');
-    document.getElementById('res-prog').classList.remove('hidden');
   } catch(e) { alert('Erro: '+e.message); }
   finally { if (sp) sp.classList.add('hidden'); }
 }
 
 async function buscarProgAuto() {
   document.getElementById('prog-inst-nome').textContent = S.instNm || S.instId;
-  document.getElementById('tab-btn-prog').style.display = '';
-  go('prog');
+  
   await buscarProg();
 }
 
@@ -538,7 +482,7 @@ function selProg(id, nm) {
     });
   }
   atualizarCtx();
-  go('ex');
+  
 }
 
 // ── TAB 3: Pesquisar ────────────────────────────────────────────────────────
