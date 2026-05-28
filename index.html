@@ -1217,6 +1217,21 @@ if (sessionStorage.getItem('auth') === '1') {
   document.getElementById('app-content').style.display = 'block';
 }
 
+// Carrega credenciais DoctorID salvas
+document.addEventListener('DOMContentLoaded', function() {
+  const e = localStorage.getItem('did_email');
+  const s = localStorage.getItem('did_senha');
+  if (e && s) {
+    didEmail = e; didSenha = s;
+    const emailEl = document.getElementById('did-email');
+    const senhaEl = document.getElementById('did-senha');
+    const statusEl = document.getElementById('doctorid-status');
+    if (emailEl) emailEl.value = e;
+    if (senhaEl) senhaEl.value = s;
+    if (statusEl) { statusEl.textContent = '✓ Configurado'; statusEl.style.color = 'var(--green)'; }
+  }
+});
+
 // Datas ficam pretas ao preencher
 document.querySelectorAll('input[type="date"]').forEach(inp => {
   inp.addEventListener('change', function() { this.style.color = this.value ? 'var(--text)' : ''; });
