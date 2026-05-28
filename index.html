@@ -409,11 +409,15 @@ async function pesquisar() {
   document.getElementById('sp-ex').classList.remove('hidden');
 
   const params = new URLSearchParams();
+  // Se tem programa sem instituição: busca em paralelo por cada combo inst+prog
+  if (!inst && !prog && S.progNm && _prog_combos[S.progNm]) {
+    await pesquisarPorCombos(S.progNm, _prog_combos[S.progNm], medico, crm, cert, ocorr, ini ? fmt(ini) : '', fim ? fmt(fim) : '');
+    return;
+  }
+
   if (uf)    params.set('uf', uf);
   if (inst)  params.set('inst', inst);
   if (prog)  params.set('prog', prog);
-  // Se tem nome de programa mas sem inst/prog ID, envia prog_nome para filtro local no backend
-  if (!inst && !prog && S.progNm) params.set('prog_nome', S.progNm);
   if (ini && fim) { params.set('ini', fmt(ini)); params.set('fim', fmt(fim)); }
   if (ocorr) params.set('ocorr', fmt(ocorr));
   if (medico) params.set('medico', medico.toUpperCase());
@@ -677,6 +681,48 @@ function _xl() {
   });
   if (multiFlat.length > 0) { const ws2=XLSX.utils.json_to_sheet(multiFlat); XLSX.utils.book_append_sheet(wb,ws2,'Múltiplas Formações'); }
   XLSX.writeFile(wb, `certificados_${Date.now()}.xlsx`);
+}
+
+// Pesquisa por múltiplos combos inst+prog em paralelo
+async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini, fim) {
+  const BATCH = 8; // máx requisições simultâneas
+  let todos = [];
+  const dedup = new Set();
+
+  for (let i = 0; i < combos.length; i += BATCH) {
+    const lote = combos.slice(i, i + BATCH);
+    const resultados = await Promise.all(lote.map(async ({inst_id, prog_id}) => {
+      const p = new URLSearchParams();
+      p.set('inst', inst_id);
+      p.set('prog', prog_id);
+      if (medico) p.set('medico', medico);
+      if (crm)    p.set('crm', crm);
+      if (cert)   p.set('cert', cert);
+      if (ocorr)  p.set('ocorr', ocorr);
+      if (ini)    p.set('ini', ini);
+      if (fim)    p.set('fim', fim);
+      try {
+        const r = await fetch(`${API}/certificados?${p.toString()}`);
+        const d = await r.json();
+        return d.dados || [];
+      } catch(e) { return []; }
+    }));
+    resultados.flat().forEach(r => {
+      const k = (r['Nº Certificado']||'') + (r['CRM']||'');
+      if (!dedup.has(k)) { dedup.add(k); todos.push(r); }
+    });
+  }
+
+  rows = todos;
+  renderTabela(todos, '', progNm);
+
+  if (todos.length === 0) {
+    document.getElementById('log').innerHTML = 'Nenhum certificado encontrado para os filtros informados.';
+    document.getElementById('log').style.display = 'block';
+  }
+
+  document.getElementById('btn-ex').disabled = false;
+  document.getElementById('sp-ex').classList.add('hidden');
 }
 
 // Datas ficam pretas ao preencher
