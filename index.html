@@ -712,13 +712,23 @@ function _xl() {
 
 // Pesquisa por múltiplos combos inst+prog em paralelo
 async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini, fim) {
-  const BATCH = 8; // máx requisições simultâneas
+  const BATCH = 20; // todas em paralelo por lote
+  const TIMEOUT = 8000; // 8s por requisição
   let todos = [];
   const dedup = new Set();
 
+  const fetchComTimeout = (url) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT);
+    return fetch(url, {signal: controller.signal})
+      .then(r => r.json())
+      .catch(() => ({dados:[]}))
+      .finally(() => clearTimeout(timer));
+  };
+
   for (let i = 0; i < combos.length; i += BATCH) {
     const lote = combos.slice(i, i + BATCH);
-    const resultados = await Promise.all(lote.map(async ({inst_id, prog_id}) => {
+    const resultados = await Promise.all(lote.map(({inst_id, prog_id}) => {
       const p = new URLSearchParams();
       p.set('inst', inst_id);
       p.set('prog', prog_id);
@@ -728,15 +738,13 @@ async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini,
       if (ocorr)  p.set('ocorr', ocorr);
       if (ini)    p.set('ini', ini);
       if (fim)    p.set('fim', fim);
-      try {
-        const r = await fetch(`${API}/certificados?${p.toString()}`);
-        const d = await r.json();
-        return d.dados || [];
-      } catch(e) { return []; }
+      return fetchComTimeout(`${API}/certificados?${p.toString()}`);
     }));
-    resultados.flat().forEach(r => {
-      const k = (r['Nº Certificado']||'') + (r['CRM']||'');
-      if (!dedup.has(k)) { dedup.add(k); todos.push(r); }
+    resultados.forEach(d => {
+      (d.dados||[]).forEach(r => {
+        const k = (r['Nº Certificado']||'') + (r['CRM']||'');
+        if (!dedup.has(k)) { dedup.add(k); todos.push(r); }
+      });
     });
   }
 
