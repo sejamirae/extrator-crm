@@ -168,19 +168,37 @@ tr:hover td{background:#fafaf8}
       </div>
     </div>
 
+    <!-- Credenciais DoctorID -->
+    <div class="divider" id="div-doctorid">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title" style="margin:0">DoctorID <span style="font-size:10px;color:var(--green);font-weight:400" id="doctorid-status"></span></div>
+        <button onclick="toggleDoctorid()" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline" id="btn-toggle-did">Configurar</button>
+      </div>
+      <div id="doctorid-form" style="display:none">
+        <div class="row2">
+          <div class="field" style="margin:0">
+            <label>Email DoctorID</label>
+            <input type="email" id="did-email" placeholder="email@exemplo.com">
+          </div>
+          <div class="field" style="margin:0">
+            <label>Senha DoctorID</label>
+            <input type="password" id="did-senha" placeholder="••••••••">
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" style="padding:8px 16px;font-size:12px" onclick="salvarCredenciaisDid()">Salvar</button>
+          <span id="did-msg" style="font-size:12px;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+
     <div class="flex-gap" style="margin-top:18px">
       <button class="btn btn-primary" id="btn-ex" onclick="pesquisar()">
         <span id="sp-ex" class="hidden spin">⟳</span> Pesquisar
       </button>
       <button class="btn btn-outline" id="btn-limpar-res" onclick="location.reload()" style="display:none">Limpar</button>
       <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">↓ Baixar XLSX</button>
-      <span id="tel-wrap" style="display:none;align-items:center;gap:6px">
-        <button class="btn btn-tel-off" id="btn-tel" onclick="buscarTelefones()" disabled>
-          ☎ Buscar Telefones
-        </button>
-        <span id="tel-help" onclick="abrirModalProxy()" title="Como usar?"
-          style="display:none;width:20px;height:20px;border-radius:50%;background:#e8e8e5;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">?</span>
-      </span>
+
       <button class="toggle-btn hidden" id="btn-filtro-inst" onclick="toggleFiltroInst()" disabled style="opacity:.4;cursor:not-allowed">
         <span class="dot"></span> Ocultar médicos com cert. mais recente em outra inst.
       </button>
@@ -193,50 +211,6 @@ tr:hover td{background:#fafaf8}
     <div class="stats" id="stats"></div>
     <div class="tbl-wrap">
       <table><thead><tr id="th-ex"></tr></thead><tbody id="tb-ex"></tbody></table>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Proxy -->
-<div class="modal-overlay" id="modal-proxy" onclick="if(event.target===this)fecharModalProxy()">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">Busca de Telefones</div>
-        <div class="modal-sub">Como configurar</div>
-      </div>
-      <button class="modal-close" onclick="fecharModalProxy()">✕</button>
-    </div>
-    <div style="font-size:13px;color:var(--text);line-height:1.7">
-      <p style="margin-bottom:12px">Para buscar telefones dos médicos, você precisa do <b>Proxy DoctorID</b> rodando no seu computador.</p>
-      <div style="background:#fafaf8;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
-        <div style="font-weight:600;margin-bottom:8px;color:var(--teal)">Passo a passo:</div>
-        <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
-          <li>Baixe o arquivo abaixo</li>
-          <li>Dê duplo clique para abrir</li>
-          <li>Digite seu email e senha do DoctorID</li>
-          <li>Clique em <b>Conectar</b> — minimize a janela</li>
-          <li>Volte aqui — o botão ficará verde</li>
-        </ol>
-      </div>
-      <a onclick="baixarProxy()" href="#"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--teal);color:#fff;padding:11px;border-radius:7px;text-decoration:none;font-weight:600;font-size:13px">
-        ↓ Baixar proxy_doctorid.py
-      </a>
-
-      <div style="margin-top:16px;background:#f4f4f2;border-radius:8px;padding:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Após baixar, abra o terminal e execute:</div>
-        <div style="background:#1a1a1a;border-radius:6px;padding:10px 12px;font-family:monospace;font-size:12px;color:#e8e8e5;line-height:1.8;position:relative">
-          <div style="color:#8a8a82">// 1. Instala as dependências (só na primeira vez)</div>
-          <div>pip install httpx keyring pillow</div>
-          <div style="margin-top:6px;color:#8a8a82">// 2. Roda o proxy</div>
-          <div>python proxy_doctorid.py</div>
-          <button onclick="copiarComandos()" style="position:absolute;top:8px;right:8px;background:#333;border:none;color:#bbb;font-size:11px;border-radius:4px;padding:3px 8px;cursor:pointer">Copiar</button>
-        </div>
-        <p style="margin-top:10px;font-size:11px;color:var(--muted)">
-          Não tem Python? <a href="https://www.python.org/downloads/" target="_blank" style="color:var(--teal)">Baixar Python aqui</a> — instale marcando a opção <b>"Add to PATH"</b>
-        </p>
-      </div>
     </div>
   </div>
 </div>
@@ -263,8 +237,8 @@ const crmCache = {}, crmMulti = {};
 let multiRows = {};
 let filtroInstAtivo = false;
 let crmVerificandoTotal = 0, crmVerificandoConcluido = 0;
-const telefoneCache = {};  // crm -> telefone
-let proxyAtivo = false;
+const contatoCache = {};  // crm -> {telefone, email, nome}
+let didEmail = '', didSenha = '';
 
 function fmt(v){ if(!v) return ''; const [y,m,d]=v.split('-'); return `${d}/${m}/${y}`; }
 function parseDateBR(s){ if(!s) return new Date(0); const [d,m,y]=s.split('/'); return new Date(+y,+m-1,+d); }
@@ -460,7 +434,7 @@ async function pesquisar() {
   rowsOriginal = [];
   Object.keys(crmMulti).forEach(k => delete crmMulti[k]);
   Object.keys(crmCache).forEach(k => delete crmCache[k]);
-  Object.keys(telefoneCache).forEach(k => delete telefoneCache[k]);
+  Object.keys(contatoCache).forEach(k => delete contatoCache[k]);
   multiRows = {};
   telBuscandoTotal = 0; telBuscandoConcluido = 0;
   document.querySelectorAll('#stat-multi').forEach(el => el.remove());
@@ -536,33 +510,35 @@ function renderTabela(d, instNm, progNm) {
   document.getElementById('stats').innerHTML =
     `<div class="stat"><div class="stat-v">${d.length}</div><div class="stat-l">Certificados</div></div>` + extra.join('');
   const crmColIdx = cols.findIndex(c => c === 'CRM');
-  // Adiciona coluna Telefone se proxy ativo
-  const colsTel = proxyAtivo ? [...cols, 'Telefone'] : cols;
-  document.getElementById('th-ex').innerHTML = colsTel.map(c => `<th>${c}</th>`).join('');
+  // Colunas sempre fixas + Telefone e Email sempre presentes
+  const COLS_SEMPRE = ['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais','Telefone','Email'];
+  const colsExibir = COLS_SEMPRE.filter(c => cols.includes(c) || ['Telefone','Email'].includes(c));
+  document.getElementById('th-ex').innerHTML = colsExibir.map(c => `<th>${c}</th>`).join('');
   document.getElementById('tb-ex').innerHTML = d.map((r, i) => {
     const crm = r['CRM'] || '';
-    const tds = cols.map((c, ci) => {
-      const val = r[c] ?? '';
-      if (ci === crmColIdx) return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${val}</td>`;
-      return `<td>${val}</td>`;
+    const cache = contatoCache[crm] || {};
+    const tds = colsExibir.map(c => {
+      if (c === 'CRM') return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${crm}</td>`;
+      if (c === 'Telefone') return `<td id="tel-${i}" class="tel-cell">${cache.telefone||''}</td>`;
+      if (c === 'Email') return `<td id="eml-${i}" style="font-size:12px">${cache.email||''}</td>`;
+      return `<td>${r[c]??''}</td>`;
     });
-    // Coluna de telefone
-    const tel = telefoneCache[crm] || '';
-    const telTd = proxyAtivo ? `<td id="tel-${i}" class="tel-cell">${tel}</td>` : '';
-    return `<tr>${tds.join('')}${telTd}</tr>`;
+    return `<tr>${tds.join('')}</tr>`;
   }).join('');
   document.getElementById('res-ex').classList.remove('hidden');
   document.getElementById('btn-xl').classList.remove('hidden');
   document.getElementById('btn-limpar-res').style.display = '';
   document.getElementById('tel-wrap').style.display = 'inline-flex';
-  verificarProxy();
-  // Só mostra filtro de última inst quando há instituição na pesquisa
+    // Só mostra filtro de última inst quando há instituição na pesquisa
   const _instVal = document.getElementById('ex-inst-sel').value;
   if (_instVal) {
     document.getElementById('btn-filtro-inst').classList.remove('hidden');
   } else {
     document.getElementById('btn-filtro-inst').classList.add('hidden');
   }
+  // Busca contatos automaticamente se credenciais configuradas
+  if (didEmail && didSenha) buscarContatosAuto(d);
+
   // Verifica CRMs em background
   multiRows = {};
   crmVerificandoTotal = 0; crmVerificandoConcluido = 0;
@@ -578,15 +554,14 @@ function renderTabelaDados(d) {
   const crmColIdx = cols.findIndex(c => c === 'CRM');
   document.getElementById('tb-ex').innerHTML = d.map((r, i) => {
     const crm = r['CRM'] || '';
-    const tds = cols.map((c, ci) => {
-      const val = r[c] ?? '';
-      if (ci === crmColIdx) return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${val}</td>`;
-      return `<td>${val}</td>`;
+    const cache = contatoCache[crm] || {};
+    const tds = colsExibir.map(c => {
+      if (c === 'CRM') return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${crm}</td>`;
+      if (c === 'Telefone') return `<td id="tel-${i}" class="tel-cell">${cache.telefone||''}</td>`;
+      if (c === 'Email') return `<td id="eml-${i}" style="font-size:12px">${cache.email||''}</td>`;
+      return `<td>${r[c]??''}</td>`;
     });
-    // Coluna de telefone
-    const tel = telefoneCache[crm] || '';
-    const telTd = proxyAtivo ? `<td id="tel-${i}" class="tel-cell">${tel}</td>` : '';
-    return `<tr>${tds.join('')}${telTd}</tr>`;
+    return `<tr>${tds.join('')}</tr>`;
   }).join('');
   d.forEach((r, i) => { const crm = r['CRM']||''; if (crmMulti[crm]) colocarBadge(crm, [i], crmMulti[crm]); });
   const statEl = document.querySelector('#stats .stat');
@@ -781,9 +756,8 @@ function _xl() {
   const enriched = rows.map(r => {
     const crm = r['CRM']||'';
     const total = crmMulti[crm]||1;
-    const tel = telefoneCache[crm] || '';
+    const contato = contatoCache[crm] || {};
     const extras = (crmCache[crm]||[]).filter(c => (c['Nº Certificado']||'') !== (r['Nº Certificado']||''));
-    // Constrói objeto na ordem fixa
     const obj = {};
     COLS_FIXAS.forEach(col => { obj[col] = r[col] ?? ''; });
     obj['Múltiplas Formações'] = total > 1 ? 'SIM' : 'NÃO';
@@ -792,7 +766,8 @@ function _xl() {
       const ex = extras[i];
       COLS_EXTRA.forEach(col => { obj[`Formação ${i+2} - ${col}`] = ex ? (ex[col]||'') : ''; });
     }
-    if (tel) obj['Telefone'] = tel;
+    obj['Telefone'] = contato.telefone || '';
+    obj['Email'] = contato.email || '';
     return obj;
   });
   const ws1 = XLSX.utils.json_to_sheet(enriched);
@@ -862,7 +837,7 @@ async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini,
 const PROXY = 'http://localhost:9977';
 let telBuscandoTotal = 0, telBuscandoConcluido = 0;
 
-async function verificarProxy() {
+async function  {
   try {
     const r = await fetch(`${PROXY}/ping`, {signal: AbortSignal.timeout(2000)});
     const d = await r.json();
@@ -1209,8 +1184,6 @@ async function buscarTelefones() {
   }
 }
 
-// Verifica proxy só quando há resultados
-setInterval(() => { if (!document.getElementById('btn-tel').classList.contains('hidden')) verificarProxy(); }, 10000);
 
 // Verificação de senha
 async function verificarSenha() {
