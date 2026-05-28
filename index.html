@@ -202,7 +202,9 @@ function parseDateBR(s){ if(!s) return new Date(0); const [d,m,y]=s.split('/'); 
 
 // ── Carregar Instituições ────────────────────────────────────────────────────
 let _instituicoes = [];
-let _programas = [];
+let _programas = [];       // programas da instituição selecionada
+let _programas_uf = [];    // programas únicos da UF (sem instituição)
+let _prog_combos = {};     // nome -> lista de combos {inst_id, prog_id}
 
 async function carregarInstituicoes() {
   const uf = document.getElementById('ex-uf').value;
@@ -228,7 +230,29 @@ async function carregarInstituicoes() {
     instInput.placeholder = 'Nome parcial...';
     instInput.disabled = false;
     instInput.style.color = '';
+    // Carrega programas da UF em paralelo (sem instituição)
+    carregarProgramasUF(uf);
   } catch(e) { instInput.placeholder = 'Erro ao carregar'; }
+}
+
+async function carregarProgramasUF(uf) {
+  _programas_uf = [];
+  _prog_combos = {};
+  if (!uf) return;
+  try {
+    const r = await fetch(`${API}/programas_uf/${uf}`);
+    const d = await r.json();
+    _programas_uf = d;
+    d.forEach(p => { _prog_combos[p.nome] = p.combos; });
+    // Se nenhuma instituição selecionada, popula o dropdown de programas com nomes únicos
+    const instId = document.getElementById('ex-inst-sel').value;
+    if (!instId) {
+      _programas = d.map(p => ({ id: '__uf__', nome: p.nome }));
+      // Mantém o campo habilitado para busca por programa
+      const progInput = document.getElementById('ex-prog-input');
+      if (progInput) { progInput.disabled = false; progInput.style.color = ''; }
+    }
+  } catch(e) { console.log('Erro ao carregar programas da UF:', e); }
 }
 
 function filtrarInstituicoes() {
@@ -259,6 +283,10 @@ async function selecionarInstituicao(id, nome) {
   document.getElementById('ex-inst-sel').value = id;
   document.getElementById('ex-inst-dropdown').style.display = 'none';
   S.instId = id; S.instNm = nome;
+  // Reseta programa ao trocar instituição
+  document.getElementById('ex-prog-input').value = '';
+  document.getElementById('ex-prog-sel').value = '';
+  S.progId = ''; S.progNm = '';
   await carregarProgramas();
 }
 
@@ -283,7 +311,14 @@ async function carregarProgramas() {
   progInput.value = ''; progInput.disabled = true;
   progInput.placeholder = 'Nome parcial...'; progInput.style.color = '#bbb';
   progSel.value = ''; S.progId = ''; S.progNm = '';
-  if (!instId) return;
+  if (!instId) {
+    // Sem instituição — usa programas da UF se disponíveis
+    if (_programas_uf.length > 0) {
+      _programas = _programas_uf.map(p => ({ id: '__uf__', nome: p.nome }));
+      progInput.disabled = false; progInput.style.color = '';
+    }
+    return;
+  }
   progInput.placeholder = 'Carregando...';
   try {
     const r = await fetch(`${API}/programas/${instId}`);
@@ -315,9 +350,16 @@ function filtrarProgramas() {
 function selecionarPrograma(id, nome) {
   document.getElementById('ex-prog-input').value = nome;
   document.getElementById('ex-prog-input').style.color = 'var(--text)';
-  document.getElementById('ex-prog-sel').value = id;
   document.getElementById('ex-prog-dropdown').style.display = 'none';
-  S.progId = id; S.progNm = nome;
+  S.progNm = nome;
+  if (id === '__uf__') {
+    // Programa sem instituição — guarda nome para filtrar localmente
+    document.getElementById('ex-prog-sel').value = '';
+    S.progId = '';
+  } else {
+    document.getElementById('ex-prog-sel').value = id;
+    S.progId = id;
+  }
 }
 
 // ── Pesquisar ────────────────────────────────────────────────────────────────
@@ -370,6 +412,8 @@ async function pesquisar() {
   if (uf)    params.set('uf', uf);
   if (inst)  params.set('inst', inst);
   if (prog)  params.set('prog', prog);
+  // Se tem nome de programa mas sem inst/prog ID, envia prog_nome para filtro local no backend
+  if (!inst && !prog && S.progNm) params.set('prog_nome', S.progNm);
   if (ini && fim) { params.set('ini', fmt(ini)); params.set('fim', fmt(fim)); }
   if (ocorr) params.set('ocorr', fmt(ocorr));
   if (medico) params.set('medico', medico.toUpperCase());
