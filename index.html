@@ -381,7 +381,7 @@ async function pesquisar() {
   const hintNome = document.getElementById('hint-nome');
   if (hintNome) hintNome.style.display = (medico && !inst) ? 'block' : 'none';
 
-  if (!medico && !crm && !cert && !ocorr && !inst) {
+  if (!medico && !crm && !cert && !ocorr && !inst && !S.progNm) {
     alert('Preencha ao menos um campo para pesquisar.');
     return;
   }
