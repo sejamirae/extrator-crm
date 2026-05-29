@@ -242,6 +242,7 @@ const contatoCache = {};
 let didEmail = '', didSenha = '';
 let telBuscandoTotal = 0, telBuscandoConcluido = 0;
 let progsSelecionados = [];
+let rowsExibidos = [];
 
 const COLS_FIXAS = ['Instituicao','Programa','Nº Certificado','Médico','CRM','UF','Início','Término','Emissão do Certificado','Informações Adicionais'];
 const COLS_API   = ['Instituição','Programa','Nº Certificado','Médico','CRM','UF','Início','Término','Emissão do Certificado','Informações Adicionais'];
@@ -628,6 +629,7 @@ async function pesquisarPorCombos(progNm, combos, medico, crm, cert, ocorr, ini,
 function renderTabela(d, instNm, progNm) {
   if (!d.length) return;
   rowsOriginal = d.slice();
+  rowsExibidos = d.slice();
   var cols = COLS_API.filter(function(c){ return d[0] && (c in d[0]); });
   var colsExibir = cols.concat(['Telefone','Email']);
   var extra = [];
@@ -667,6 +669,7 @@ function renderTabela(d, instNm, progNm) {
 }
 
 function renderTabelaDados(d) {
+  rowsExibidos = d;
   var src = rowsOriginal.length ? rowsOriginal : d;
   var cols = COLS_API.filter(function(c){ return src[0] && (c in src[0]); });
   var colsExibir = cols.concat(['Telefone','Email']);
@@ -821,7 +824,8 @@ function exportXL() {
 function _xl() {
   var wb = XLSX.utils.book_new();
   var COLS_XL = ['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais','Múltiplas Formações','Total Certificações','Telefone','Email'];
-  var enriched = rows.map(function(r){
+  var dados = rowsExibidos.length ? rowsExibidos : rows;
+  var enriched = dados.map(function(r){
     var crm = r['CRM']||'';
     var total = crmMulti[crm]||1;
     var contato = contatoCache[crm]||{};
