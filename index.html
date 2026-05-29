@@ -513,6 +513,7 @@ async function pesquisar(){
   resetResultados();
   document.getElementById('btn-ex').disabled=true;
   document.getElementById('sp-ex').classList.remove('hidden');
+  iniciarFaviconLoader();
 
   // Acorda servidor
   setLog('Conectando ao servidor','i');
@@ -708,9 +709,18 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
     return;
   }
 
+  // Habilita botões
+  document.getElementById('btn-xl').classList.remove('hidden');
+  document.getElementById('btn-xl').disabled=false;
+  document.getElementById('btn-limpar').style.display='';
+  document.getElementById('btn-st').classList.remove('hidden');
+  document.getElementById('btn-ex').disabled=false;
+  document.getElementById('sp-ex').classList.add('hidden');
+  pararFaviconLoader();
   // Inicia verificações em background
   iniciarMultiCheck(todos);
   if(didEmail&&didSenha) iniciarContatos(todos);
+  else { document.getElementById('btn-st').disabled=true; }
 }
 
 var _lastLogTime=0;
@@ -718,7 +728,7 @@ var _lastLogTipo='';
 function setLog(msg,tipo,force){
   var now=Date.now();
   // Só atualiza se forçado, se mudou o tipo, ou se passaram 5 segundos
-  if(!force && _lastLogTipo===tipo && now-_lastLogTime < 5000) return;
+  if(!force && _lastLogTipo===tipo && now-_lastLogTime < 4000) return;
   _lastLogTime=now;
   _lastLogTipo=tipo||'';
   var el=document.getElementById('log');
@@ -1063,7 +1073,40 @@ document.addEventListener('DOMContentLoaded',function(){
 document.querySelectorAll('input[type="date"]').forEach(function(inp){
   inp.addEventListener('change',function(){this.style.color=this.value?'var(--text)':'';}); 
 });
+
+// Favicon animado durante pesquisa
+var _faviconOriginal = document.querySelector('link[rel="icon"]').href;
+var _faviconFrame = 0;
+var _faviconTimer = null;
+var _faviconSVGs = [
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="16" cy="4" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="26" cy="9" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="28" cy="16" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="26" cy="23" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="16" cy="28" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="6" cy="23" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="4" cy="16" r="3" fill="%23c9a96e"/></svg>',
+  'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23013b47"/><circle cx="6" cy="9" r="3" fill="%23c9a96e"/></svg>',
+];
+function iniciarFaviconLoader(){
+  if(_faviconTimer) return;
+  _faviconTimer=setInterval(function(){
+    _faviconFrame=(_faviconFrame+1)%_faviconSVGs.length;
+    var link=document.querySelector('link[rel="icon"]');
+    if(link) link.href=_faviconSVGs[_faviconFrame];
+  },120);
+}
+function pararFaviconLoader(){
+  if(_faviconTimer){clearInterval(_faviconTimer);_faviconTimer=null;}
+  var link=document.querySelector('link[rel="icon"]');
+  if(link) link.href=_faviconOriginal;
+}
+
 fetch(API+'/').catch(function(){});
+window.addEventListener('scroll',function(){
+  var btn=document.getElementById('btn-top');
+  if(btn) btn.style.display=window.scrollY>300?'flex':'none';
+});
 </script>
 </body>
 </html>
