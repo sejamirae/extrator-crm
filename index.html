@@ -471,7 +471,7 @@ function selecionarPrograma(id, nome) {
   renderProgTags();
   // Compatibilidade com código existente (usa o primeiro)
   S.progNm = progsSelecionados.map(p => p.nome).join(', ');
-  S.progId = progsSelecionados[0]?.id || '';
+  S.progId = (progsSelecionados[0] && progsSelecionados[0].id) || '';
   document.getElementById('ex-prog-sel').value = S.progId;
 }
 
@@ -487,7 +487,7 @@ function removerProg(i) {
   progsSelecionados.splice(i, 1);
   renderProgTags();
   S.progNm = progsSelecionados.map(p => p.nome).join(', ');
-  S.progId = progsSelecionados[0]?.id || '';
+  S.progId = (progsSelecionados[0] && progsSelecionados[0].id) || '';
   document.getElementById('ex-prog-sel').value = S.progId;
 }
 
@@ -509,8 +509,8 @@ async function pesquisar() {
   const fim    = document.getElementById('ex-fim').value;
   const inst   = document.getElementById('ex-inst-sel').value || '';
   const prog   = document.getElementById('ex-prog-sel').value || '';
-  const instNm = inst ? (document.getElementById('ex-inst-input')?.value || S.instNm || '') : '';
-  const progNm = prog ? (document.getElementById('ex-prog-input')?.value || S.progNm || '') : '';
+  const instNm = inst ? ((document.getElementById('ex-inst-input') && document.getElementById('ex-inst-input').value) || S.instNm || '') : '';
+  const progNm = prog ? ((document.getElementById('ex-prog-input') && document.getElementById('ex-prog-input').value) || S.progNm || '') : '';
 
   const hintNome = document.getElementById('hint-nome');
   if (hintNome) hintNome.style.display = (medico && !inst) ? 'block' : 'none';
@@ -812,7 +812,7 @@ async function toggleFiltroInst() {
   await Promise.all(crmsParaBuscar.map(async crm => {
     try { const r = await fetch(`${API}/certificados?crm=${encodeURIComponent(crm)}`); const d = await r.json(); crmCache[crm] = d.dados||[]; } catch(e) {}
   }));
-  const instAtual = rowsOriginal[0]?.['Instituição'] || '';
+  const instAtual = (rowsOriginal[0] && rowsOriginal[0]['Instituição']) || '';
   const filtradas = rowsOriginal.filter(r => {
     const crm = r['CRM']||'';
     if (!crmMulti[crm]) return true;
