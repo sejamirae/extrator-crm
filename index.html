@@ -742,7 +742,7 @@ var _lastLogTipo='';
 var _tempoInicio={};
 function setLog(msg,tipo,force){
   var now=Date.now();
-  if(!force && _lastLogTipo===tipo && now-_lastLogTime < 4000) return;
+  if(!force && _lastLogTipo===tipo && now-_lastLogTime < 2000) return;
   _lastLogTime=now;
   _lastLogTipo=tipo||'';
   var el=document.getElementById('log');
@@ -878,6 +878,7 @@ async function iniciarMultiCheck(d){
     }
   }
   finalizarMulti();
+  marcarFim('multi');
 }
 
 function colocarBadge(crm,indices,total){
@@ -957,10 +958,13 @@ async function iniciarContatos(d){
       if(telDone>=telTotal){
         statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> '+ckSvg('var(--green)');
         document.getElementById('btn-st').classList.remove('hidden');
-        marcarFim('contatos');
       } else {
         statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> <span class="spin" title="'+pct+'%"></span>';
       }
+    }
+    // marcarFim FORA do if(statEl) para garantir execução
+    if(telDone>=telTotal){
+      marcarFim('contatos');
     }
   }
 }
