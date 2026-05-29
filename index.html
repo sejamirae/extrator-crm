@@ -760,35 +760,53 @@ function atualizarView(d){
   if(statEl) statEl.innerHTML='<div class="sv">'+d.length+'</div><div class="sl">Certificados</div>';
 }
 
-// ── Multi-cert ────────────────────────────────────────────────────────────────
-function iniciarMultiCheck(d){
+// ── Multi-cert (bulk) ────────────────────────────────────────────────────────
+async function iniciarMultiCheck(d){
   multiTotal=0; multiDone=0;
   var crmsV={};
   d.forEach(function(r,i){var c=r['CRM'];if(!c)return;if(!crmsV[c])crmsV[c]=[];crmsV[c].push(i);});
   var lista=Object.keys(crmsV);
   multiTotal=lista.length;
   if(multiTotal===0){finalizarMulti();return;}
+
   var statsEl=document.getElementById('stats');
   document.querySelectorAll('#stat-multi').forEach(function(el){el.remove();});
   var s=document.createElement('div');s.className='stat';s.id='stat-multi';
   s.innerHTML='<div class="sv" style="color:var(--gold)">0 <span class="spin"></span></div><div class="sl">Múltiplos Cert.</div>';
   statsEl.appendChild(s);
-  lista.forEach(function(crm){checkMulti(crm,crmsV[crm]);});
+
+  // Envia em lotes de 30 CRMs por vez ao endpoint bulk
+  var BULK=30;
+  for(var i=0;i<lista.length;i+=BULK){
+    var lote=lista.slice(i,i+BULK);
+    try{
+      var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','));
+      var data=await r.json();
+      Object.keys(data).forEach(function(crm){
+        var total=data[crm]||0;
+        if(total>1){
+          crmMulti[crm]=total;
+          if(crmsV[crm]) colocarBadge(crm,crmsV[crm],total);
+        }
+      });
+    }catch(e){}
+    multiDone+=lote.length;
+    // Atualiza stat
+    var multi=Object.keys(crmMulti).length;
+    var pct=Math.round(multiDone/multiTotal*100);
+    var el=document.getElementById('stat-multi');
+    if(el){
+      if(multiDone>=multiTotal){
+        el.querySelector('.sv').innerHTML='<span style="color:var(--gold)">'+multi+'</span> '+ckSvg('var(--gold)');
+      } else {
+        el.querySelector('.sv').innerHTML='<span style="color:var(--gold)">'+multi+'</span> <span class="spin" title="'+pct+'% verificado"></span>';
+      }
+    }
+  }
+  finalizarMulti();
 }
 
-async function checkMulti(crm,indices){
-  if(!crm)return;
-  if(crmMulti[crm]){colocarBadge(crm,indices,crmMulti[crm]);}
-  else{
-    try{
-      var r=await fetch(API+'/contar?crm='+encodeURIComponent(crm));
-      var d=await r.json();
-      if((d.total||0)>1){crmMulti[crm]=d.total;colocarBadge(crm,indices,d.total);atualizarStatMulti();}
-    }catch(e){}
-  }
-  multiDone++;
-  if(multiDone>=multiTotal) finalizarMulti();
-}
+function checkMulti(){} // mantido por compatibilidade
 
 function colocarBadge(crm,indices,total){
   indices.forEach(function(i){
@@ -815,48 +833,59 @@ function finalizarMulti(){
   }
 }
 
-// ── Contatos ──────────────────────────────────────────────────────────────────
+// ── Contatos (bulk com sessão em cache) ───────────────────────────────────────
 async function iniciarContatos(d){
   var crmsU=[],seen={};
   d.forEach(function(r){var c=r['CRM'];if(c&&!contatoCache[c]&&!seen[c]){seen[c]=1;crmsU.push(c);}});
   if(!crmsU.length) return;
   telTotal=crmsU.length; telDone=0;
+
   var statsEl=document.getElementById('stats');
   document.querySelectorAll('#stat-tel').forEach(function(el){el.remove();});
   var s=document.createElement('div');s.className='stat';s.id='stat-tel';
   s.innerHTML='<div class="sv" style="color:var(--green)">0 <span class="spin"></span></div><div class="sl">Contatos</div>';
   statsEl.appendChild(s);
-  var BATCH=5;
-  for(var i=0;i<crmsU.length;i+=BATCH){
-    var lote=crmsU.slice(i,i+BATCH);
-    await Promise.all(lote.map(async function(crm){
-      try{
-        var p=new URLSearchParams({email:didEmail,senha:didSenha,crm:crm});
-        var r=await fetch(API+'/telefone?'+p);
-        var data=await r.json();
-        contatoCache[crm]={telefone:data.telefone||'',email:data.email||''};
-      }catch(e){contatoCache[crm]={telefone:'',email:''};}
-      rows.forEach(function(row,ri){
-        if((row['CRM']||'')===crm){
-          var tel=document.getElementById('tel-'+ri);
-          var eml=document.getElementById('eml-'+ri);
-          if(tel) tel.textContent=contatoCache[crm].telefone;
-          if(eml) eml.textContent=contatoCache[crm].email;
-        }
+
+  // Envia em lotes de 50 CRMs por vez ao endpoint bulk
+  var BULK=50;
+  for(var i=0;i<crmsU.length;i+=BULK){
+    var lote=crmsU.slice(i,i+BULK);
+    try{
+      var p=new URLSearchParams({email:didEmail,senha:didSenha,crms:lote.join(',')});
+      var r=await fetch(API+'/telefone_bulk?'+p.toString());
+      var data=await r.json();
+      // Processa resultados do lote
+      Object.keys(data).forEach(function(crm){
+        var info=data[crm]||{};
+        contatoCache[crm]={telefone:info.telefone||'',email:info.email||''};
+        // Atualiza células na tabela
+        rows.forEach(function(row,ri){
+          if((row['CRM']||'')===crm){
+            var tel=document.getElementById('tel-'+ri);
+            var eml=document.getElementById('eml-'+ri);
+            if(tel) tel.textContent=contatoCache[crm].telefone;
+            if(eml) eml.textContent=contatoCache[crm].email;
+          }
+        });
       });
-      telDone++;
-      var com=Object.values(contatoCache).filter(function(c){return c.telefone||c.email;}).length;
-      var statEl=document.getElementById('stat-tel');
-      if(statEl){
-        if(telDone>=telTotal){
-          statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> '+ckSvg('var(--green)');
-          document.getElementById('btn-st').classList.remove('hidden');
-          document.getElementById('btn-st').disabled=false;
-        } else {
-          statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> <span class="spin"></span>';
-        }
+    }catch(e){
+      // Marca lote como processado mesmo com erro
+      lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:''};});
+    }
+    telDone+=lote.length;
+    // Atualiza stat
+    var com=Object.values(contatoCache).filter(function(c){return c.telefone||c.email;}).length;
+    var pct=Math.round(telDone/telTotal*100);
+    var statEl=document.getElementById('stat-tel');
+    if(statEl){
+      if(telDone>=telTotal){
+        statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> '+ckSvg('var(--green)');
+        document.getElementById('btn-st').classList.remove('hidden');
+        document.getElementById('btn-st').disabled=false;
+      } else {
+        statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> <span class="spin" title="'+pct+'% verificado"></span>';
       }
-    }));
+    }
   }
 }
 
