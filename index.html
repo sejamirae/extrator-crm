@@ -657,7 +657,7 @@ function renderTabela(d, instNm, progNm) {
       if (c === 'CRM') return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${crm}</td>`;
       if (c === 'Telefone') return `<td id="tel-${i}" class="tel-cell">${cache.telefone||''}</td>`;
       if (c === 'Email') return `<td id="eml-${i}" style="font-size:11px">${cache.email||''}</td>`;
-      return `<td>${r[c]??''}</td>`;
+      return `<td>${r[c]||''}</td>`;
     });
     return `<tr>${tds.join('')}</tr>`;
   }).join('');
@@ -687,7 +687,7 @@ function renderTabelaDados(d) {
       if (c === 'CRM') return `<td style="white-space:nowrap"><span id="bdg-${i}" data-crm="${crm}"></span>${crm}</td>`;
       if (c === 'Telefone') return `<td id="tel-${i}" class="tel-cell">${cache.telefone||''}</td>`;
       if (c === 'Email') return `<td id="eml-${i}" style="font-size:11px">${cache.email||''}</td>`;
-      return `<td>${r[c]??''}</td>`;
+      return `<td>${r[c]||''}</td>`;
     });
     return `<tr>${tds.join('')}</tr>`;
   }).join('');
@@ -846,7 +846,7 @@ function _xl() {
       else if (col === 'Total Certificações') obj[col] = total;
       else if (col === 'Telefone') obj[col] = contato.telefone || '';
       else if (col === 'Email') obj[col] = contato.email || '';
-      else obj[col] = r[col] ?? '';
+      else obj[col] = r[col] || '';
     });
     return obj;
   });
