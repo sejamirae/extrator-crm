@@ -75,6 +75,9 @@ tr:hover td{background:#f8f8f6}
 .msub{font-size:11px;color:var(--muted);margin-top:2px}
 .mcl{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:var(--r)}
 .mcl:hover{background:var(--bg)}
+#btn-top{position:fixed;bottom:24px;right:24px;width:38px;height:38px;background:var(--teal);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:100;transition:opacity .2s}
+#btn-top:hover{background:var(--teal2)}
+body.dark #btn-top{background:var(--teal2)}
 .cc{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;margin-bottom:8px}
 .cc:last-child{margin-bottom:0}
 .cn{font-size:9px;font-weight:700;color:var(--teal);letter-spacing:.9px;text-transform:uppercase;margin-bottom:10px}
@@ -85,33 +88,38 @@ tr:hover td{background:#f8f8f6}
 .mt10{margin-top:10px}
 
 /* Dark */
-body.dark{--bg:#141414;--surface:#1c1c1c;--border:#2c2c2c;--text:#dedede;--muted:#585858;--green:#3a8c58}
+body.dark{--bg:#1a1a1a;--surface:#242424;--border:#383838;--text:#e8e8e8;--muted:#909090;--green:#4aaa6a}
 body.dark .hdr{background:var(--teal);border-color:rgba(0,0,0,.4)}
-body.dark .card,.dark .stat{background:var(--surface);border-color:var(--border);box-shadow:none}
-body.dark .sv{color:#5ab0c0}
-body.dark input,body.dark select{background:#1e1e1e;border-color:var(--border);color:var(--text)}
-body.dark input:focus,body.dark select:focus{background:#232323;border-color:rgba(255,255,255,.12)}
-body.dark input::placeholder,body.dark input[type="date"]{color:#404040}
+body.dark .card{background:var(--surface);border-color:var(--border);box-shadow:none}
+body.dark .stat{background:var(--surface);border-color:var(--border);box-shadow:none}
+body.dark .sv{color:#7ac8d8}
+body.dark input,body.dark select{background:#2a2a2a;border-color:var(--border);color:var(--text)}
+body.dark input:focus,body.dark select:focus{background:#303030;border-color:rgba(255,255,255,.25)}
+body.dark input::placeholder,body.dark input[type="date"]{color:#606060}
+body.dark label{color:var(--muted)}
+body.dark .sec{color:var(--muted)}
 body.dark .tbl-wrap{border-color:var(--border);box-shadow:none}
-body.dark th{background:#181818;color:#484848;border-color:var(--border)}
+body.dark th{background:#1e1e1e;color:#787878;border-color:var(--border)}
 body.dark td{border-color:var(--border);color:var(--text)}
-body.dark tr:hover td{background:#1e1e1e}
-body.dark .dd,.dark .ddi{background:#1e1e1e;border-color:var(--border);color:var(--text)}
-body.dark .ddi:hover{background:#2a2a2a}
-body.dark .log{background:#2a1818;border-color:#4a2020;color:#cc7070}
-body.dark .log-i{background:#151f22;border-color:#253a40;color:var(--muted)}
-body.dark .modal,.dark .cc{background:var(--surface)}
-body.dark .mhdr,.dark .cc{border-color:var(--border)}
-body.dark .cc{background:#222}
+body.dark tr:hover td{background:#2e2e2e}
+body.dark .dd{background:#2a2a2a;border-color:var(--border)}
+body.dark .ddi{background:#2a2a2a;border-color:var(--border);color:var(--text)}
+body.dark .ddi:hover{background:#383838}
+body.dark .log{background:#2a1818;border-color:#5a2828;color:#e08080}
+body.dark .log-i{background:#1a2428;border-color:#2a4050;color:var(--muted)}
+body.dark .modal{background:var(--surface)}
+body.dark .mhdr{border-color:var(--border)}
+body.dark .cc{background:#2e2e2e;border-color:var(--border)}
 body.dark .btn-o{border-color:var(--border);color:var(--muted)}
+body.dark .btn-o:hover{border-color:rgba(255,255,255,.3);color:var(--text)}
 body.dark .tog{border-color:var(--border);color:var(--muted)}
-body.dark .tog.on{background:#162218;border-color:#2a4a34;color:var(--green)}
-body.dark .tag{background:#014d5c}
+body.dark .tog.on{background:#1a2e22;border-color:#3a6e4a;color:var(--green)}
+body.dark .tag{background:#015a70}
 body.dark .tag:hover{background:var(--teal2)}
-body.dark #login-screen{background:#141414}
-body.dark #login-screen>div{background:#1c1c1c;border-color:var(--border)}
-body.dark #login-screen input{background:#222;border-color:var(--border);color:var(--text)}
-body.dark #login-screen input::placeholder{color:#404040}
+body.dark #login-screen{background:#1a1a1a}
+body.dark #login-screen>div{background:#242424;border-color:var(--border)}
+body.dark #login-screen input{background:#2a2a2a;border-color:var(--border);color:var(--text)}
+body.dark #login-screen input::placeholder{color:#606060}
 
 @media(max-width:580px){.g2,.g3{grid-template-columns:1fr}}
 </style>
@@ -219,6 +227,8 @@ body.dark #login-screen input::placeholder{color:#404040}
 </div>
 </div>
 </div>
+
+<button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">&#8593;</button>
 
 <div class="modal-ov" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -789,22 +799,28 @@ async function iniciarMultiCheck(d){
 
   if(multiTotal===0){finalizarMulti();return;}
 
-  // Verifica via API os que aparecem só uma vez (lotes de 5)
-  var BULK=5;
+  // Verifica via /contar_bulk (igual ao telefone_bulk)
+  var BULK=8;
+  var totalLotesM=Math.ceil(paraVerificar.length/BULK);
+  var loteNumM=0;
   for(var i=0;i<paraVerificar.length;i+=BULK){
     var lote=paraVerificar.slice(i,i+BULK);
-    await Promise.all(lote.map(async function(crm){
-      try{
-        var r=await fetch(API+'/contar?crm='+encodeURIComponent(crm),{signal:AbortSignal.timeout(12000)});
-        var data=await r.json();
-        if((data.total||0)>1){
-          crmMulti[crm]=data.total;
-          if(crmsV[crm]) colocarBadge(crm,crmsV[crm],data.total);
-        }
-      }catch(e){}
-      multiDone++;
-    }));
-    // Atualiza stat
+    loteNumM++;
+    setLog('Verificando múltiplos certificados: lote '+loteNumM+' de '+totalLotesM+' ('+Math.round(loteNumM/totalLotesM*100)+'%)','i');
+    try{
+      var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','),{signal:AbortSignal.timeout(25000)});
+      var data=await r.json();
+      if(!data.error){
+        Object.keys(data).forEach(function(crm){
+          var total=data[crm]||0;
+          if(total>1){
+            crmMulti[crm]=total;
+            if(crmsV[crm]) colocarBadge(crm,crmsV[crm],total);
+          }
+        });
+      }
+    }catch(e){}
+    multiDone+=lote.length;
     var multi=Object.keys(crmMulti).length;
     var pct=Math.round((multiImediatos+multiDone)/(multiImediatos+multiTotal)*100);
     var svM=document.getElementById('sv-multi');
@@ -812,6 +828,7 @@ async function iniciarMultiCheck(d){
     if(svM) svM.textContent=multi;
     if(elM&&multiDone>=multiTotal){
       elM.querySelector('.sv').innerHTML='<span style="color:var(--gold)">'+multi+'</span> '+ckSvg('var(--gold)');
+      document.getElementById('log').style.display='none';
     }
   }
   finalizarMulti();
@@ -833,10 +850,8 @@ function atualizarStatMulti(){
 function finalizarMulti(){
   var el=document.getElementById('stat-multi');
   if(el){var v=el.querySelector('.sv');if(v)v.innerHTML='<span style="color:var(--gold)">'+(Object.keys(crmMulti).length||'0')+'</span> '+ckSvg('var(--gold)');}
-  // Habilita botões após multi-cert finalizar
-  document.getElementById('btn-xl').classList.remove('hidden');
-  document.getElementById('btn-xl').disabled=false;
-  if(instsSelec.length===1||rowsOrig[0]){
+  // Habilita filtro de inst (XLSX já está disponível desde que os resultados carregaram)
+  if(rowsOrig.length>0){
     document.getElementById('btn-fi').classList.remove('hidden');
     document.getElementById('btn-fi').disabled=false;
   }
