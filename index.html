@@ -24,8 +24,8 @@ input,select{width:100%;background:var(--bg);border:1px solid var(--border);bord
 input:focus,select:focus{border-color:var(--teal);background:#fff;box-shadow:0 0 0 3px rgba(1,59,71,.07)}
 input::placeholder{color:#bbb}
 input[type="date"]{color:#bbb}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;letter-spacing:.1px}
 .btn-primary{background:var(--teal);color:#fff}.btn-primary:hover{background:var(--teal2)}.btn-primary:disabled{opacity:.35;cursor:not-allowed}
 .btn-gold{background:var(--gold);color:#fff}.btn-gold:hover{filter:brightness(1.06)}
@@ -73,8 +73,19 @@ tr:hover td{background:#fafaf8}
 .mt12{margin-top:12px}
 body.dark{--bg:#111;--surface:#1a1a1a;--border:#2a2a2a;--text:#e8e8e8;--muted:#666}
 body.dark .hdr{background:#012830}
-body.dark input,body.dark select{background:#222;border-color:#333;color:#e8e8e8}
-body.dark input:focus,body.dark select:focus{background:#2a2a2a}
+body.dark input,body.dark select{background:#1e1e1e;border-color:#333;color:#e8e8e8}
+body.dark input:focus,body.dark select:focus{background:#252525;border-color:rgba(255,255,255,.2)}
+body.dark input::placeholder{color:#555}
+body.dark .stat{background:#1a1a1a;border-color:#2a2a2a}
+body.dark .tbl-wrap{border-color:#2a2a2a}
+body.dark th{background:#161616;color:#555;border-color:#2a2a2a}
+body.dark td{border-color:#222;color:#ddd}
+body.dark tr:hover td{background:#1e1e1e}
+body.dark .hdr img{background:transparent}
+body.dark #ex-inst-dropdown,body.dark #ex-prog-dropdown{background:#1e1e1e;border-color:#333}
+body.dark .log{background:#2a1a1a;border-color:#5a2a2a}
+body.dark .modal-overlay .modal{background:#1a1a1a}
+body.dark .prog-tag{background:#014d5c}
 body.dark .modal{background:#1a1a1a}
 body.dark .cert-card{background:#222;border-color:#333}
 body.dark th{background:#1e1e1e}
@@ -189,7 +200,7 @@ body.dark #login-screen > div{background:#1a1a1a;border-color:#2a2a2a}
     <button class="btn btn-outline" id="btn-limpar-res" onclick="location.reload()" style="display:none">Limpar</button>
     <button class="btn btn-gold hidden" id="btn-xl" onclick="exportXL()">Exportar XLSX</button>
     <button class="toggle-wrap hidden" id="btn-sem-tel" onclick="toggleSemTel()" disabled style="opacity:.4;cursor:not-allowed">
-      <span class="toggle-track"></span> Ocultar sem telefone
+      <span class="toggle-track"></span> Ocultar médicos sem telefone
     </button>
     <button class="toggle-wrap hidden" id="btn-filtro-inst" onclick="toggleFiltroInst()" disabled style="opacity:.4;cursor:not-allowed">
       <span class="toggle-track"></span> Ocultar cert. mais recente em outra instituição
@@ -310,7 +321,7 @@ async function buscarContatosAuto(d) {
         '<span style="color:var(--green)">'+com+'</span> <span id="spin-tel" class="spin-css dark" style="width:10px;height:10px;border-width:1.5px"></span>';
       if (telBuscandoConcluido >= telBuscandoTotal) {
         var spin = document.getElementById('spin-tel');
-        if (spin) spin.outerHTML = '<span style="font-size:11px;color:var(--gold)">ok</span>';
+        if (spin) spin.outerHTML = '<span style="font-size:11px;opacity:.7">&#10003;</span>';
         var btnST = document.getElementById('btn-sem-tel');
         if (btnST) { btnST.disabled=false; btnST.style.opacity=''; btnST.style.cursor=''; }
       }
@@ -376,7 +387,8 @@ function filtrarInstituicoes() {
   var filtradas = _instituicoes.filter(function(x){ return x.nome.toLowerCase().indexOf(q) >= 0; }).slice(0,30);
   if (!filtradas.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = filtradas.map(function(x){
-    return '<div onclick="selecionarInstituicao(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)" onmouseenter="this.style.background=\'#f2f2f0\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
+    var bg=document.body.classList.contains('dark')?'#252525':'#f2f2f0';
+    return '<div onclick="selecionarInstituicao(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)" onmouseenter="this.style.background=\''+bg+'\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -707,7 +719,7 @@ function atualizarStatMulti() {
 
 function finalizarStatMulti() {
   var el = document.getElementById('spin-multi');
-  if (el) el.outerHTML = '<span style="font-size:11px;color:var(--gold)">ok</span>';
+  if (el) el.outerHTML = '<span style="font-size:11px;opacity:.7">&#10003;</span>';
   var btn = document.getElementById('btn-filtro-inst');
   if (btn) { btn.disabled=false; btn.style.opacity=''; btn.style.cursor=''; }
 }
