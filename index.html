@@ -69,23 +69,49 @@ tr:hover td{background:#fafaf8}
 .prog-tag{display:inline-flex;align-items:center;gap:4px;background:var(--teal);color:#fff;font-size:11px;padding:3px 8px;border-radius:3px;cursor:pointer;margin:2px}
 .prog-tag:hover{background:var(--teal2)}
 .hint{font-size:11px;color:var(--muted);margin-top:4px;display:none;font-style:italic}
+.chk{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted);vertical-align:middle;flex-shrink:0}.chk::after{content:"";display:block;width:4px;height:7px;border:1.5px solid var(--muted);border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
 .hidden{display:none!important}
 .mt12{margin-top:12px}
-body.dark{--bg:#111;--surface:#1a1a1a;--border:#2a2a2a;--text:#e8e8e8;--muted:#666}
-body.dark .hdr{background:#012830}
-body.dark input,body.dark select{background:#1e1e1e;border-color:#333;color:#e8e8e8}
-body.dark input:focus,body.dark select:focus{background:#252525;border-color:rgba(255,255,255,.2)}
-body.dark input::placeholder{color:#555}
-body.dark .stat{background:#1a1a1a;border-color:#2a2a2a}
-body.dark .tbl-wrap{border-color:#2a2a2a}
-body.dark th{background:#161616;color:#555;border-color:#2a2a2a}
-body.dark td{border-color:#222;color:#ddd}
-body.dark tr:hover td{background:#1e1e1e}
-body.dark .hdr img{background:transparent}
-body.dark #ex-inst-dropdown,body.dark #ex-prog-dropdown{background:#1e1e1e;border-color:#333}
-body.dark .log{background:#2a1a1a;border-color:#5a2a2a}
-body.dark .modal-overlay .modal{background:#1a1a1a}
-body.dark .prog-tag{background:#014d5c}
+/* ── Dark mode ──────────────────────────────────────────── */
+body.dark{
+  --bg:#141414;--surface:#1c1c1c;--border:#2e2e2e;
+  --text:#e0e0e0;--muted:#606060;--green:#3d9160;
+}
+body.dark .hdr{background:var(--teal)}
+body.dark .card{background:var(--surface);border-color:var(--border)}
+body.dark input,body.dark select{
+  background:#222;border-color:var(--border);
+  color:var(--text)
+}
+body.dark input:focus,body.dark select:focus{
+  background:#272727;border-color:rgba(255,255,255,.15)
+}
+body.dark input::placeholder{color:#484848}
+body.dark input[type="date"]{color:#484848}
+body.dark .stat{background:var(--surface);border-color:var(--border)}
+body.dark .stat-v{color:#6bb8cc}
+body.dark .tbl-wrap{border-color:var(--border)}
+body.dark th{background:#181818;color:var(--muted);border-color:var(--border)}
+body.dark td{border-color:var(--border);color:var(--text)}
+body.dark tr:hover td{background:#222}
+body.dark #ex-inst-dropdown,body.dark #ex-prog-dropdown{
+  background:#222;border-color:var(--border)
+}
+body.dark #ex-inst-dropdown div,body.dark #ex-prog-dropdown div{
+  border-color:var(--border) !important;color:var(--text)
+}
+body.dark .log{background:#2a1818;border-color:#5a2020;color:#e08080}
+body.dark .modal{background:var(--surface);border-color:var(--border)}
+body.dark .cert-card{background:#222;border-color:var(--border)}
+body.dark .modal-header{border-color:var(--border)}
+body.dark .btn-outline{border-color:var(--border);color:var(--muted)}
+body.dark .toggle-wrap{border-color:var(--border);color:var(--muted)}
+body.dark .toggle-wrap.on{background:#1a2e22;border-color:#3d6e52;color:#3d9160}
+body.dark .prog-tag{background:var(--teal2)}
+body.dark #login-screen{background:#141414}
+body.dark #login-screen>div{background:#1c1c1c;border-color:#2e2e2e}
+body.dark .section-title{color:var(--muted)}
+body.dark label{color:var(--muted)}
 body.dark .modal{background:#1a1a1a}
 body.dark .cert-card{background:#222;border-color:#333}
 body.dark th{background:#1e1e1e}
@@ -322,7 +348,7 @@ async function buscarContatosAuto(d) {
         '<span style="color:var(--green)">'+com+'</span> <span id="spin-tel" class="spin-css dark" style="width:10px;height:10px;border-width:1.5px"></span>';
       if (telBuscandoConcluido >= telBuscandoTotal) {
         var spin = document.getElementById('spin-tel');
-        if (spin) spin.outerHTML = '<span style="font-size:11px;opacity:.7">&#10003;</span>';
+        if (spin) spin.outerHTML = '<span class="chk"></span>';
         var btnST = document.getElementById('btn-sem-tel');
         if (btnST) { btnST.disabled=false; btnST.style.opacity=''; btnST.style.cursor=''; }
       }
@@ -388,8 +414,8 @@ function filtrarInstituicoes() {
   var filtradas = _instituicoes.filter(function(x){ return x.nome.toLowerCase().indexOf(q) >= 0; }).slice(0,30);
   if (!filtradas.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = filtradas.map(function(x){
-    var bg=document.body.classList.contains('dark')?'#252525':'#f2f2f0';
-    return '<div onclick="selecionarInstituicao(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)" onmouseenter="this.style.background=\''+bg+'\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
+    var bg=document.body.classList.contains('dark')?'#2a2a2a':'#f2f2f0';
+    return '<div onclick="selecionarInstituicao(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);color:var(--text)" onmouseenter="this.style.background=\''+bg+'\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -439,7 +465,8 @@ function filtrarProgramas() {
   var filtrados = _programas.filter(function(x){ return x.nome.toLowerCase().indexOf(q) >= 0; }).slice(0,30);
   if (!filtrados.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = filtrados.map(function(x){
-    return '<div onclick="selecionarPrograma(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)" onmouseenter="this.style.background=\'#f2f2f0\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
+    var bgp=document.body.classList.contains('dark')?'#2a2a2a':'#f2f2f0';
+    return '<div onclick="selecionarPrograma(\''+x.id+'\',\''+x.nome.replace(/'/g,"\\'")+'\')" style="padding:9px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);color:var(--text)" onmouseenter="this.style.background=\''+bgp+'\'" onmouseleave="this.style.background=\'\'">'+x.nome+'</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -537,15 +564,23 @@ async function pesquisar() {
   document.getElementById('log').style.display = 'none';
   document.getElementById('log').removeAttribute('style');
 
-  // Múltiplos programas sem instituição
+  // Programas selecionados sem instituição
   if (progsSelecionados.length > 0 && !inst) {
+    // Aguarda combos carregarem se ainda não estiverem prontos
+    if (Object.keys(_prog_combos).length === 0 && uf) {
+      await carregarProgramasUF(uf);
+    }
     var todosOsCombos = [];
+    var seen = {};
     progsSelecionados.forEach(function(p){
       var combos = _prog_combos[p.nome] || [];
-      combos.forEach(function(c){ todosOsCombos.push(c); });
+      combos.forEach(function(c){
+        var k = c.inst_id + '_' + c.prog_id;
+        if (!seen[k]) { seen[k]=1; todosOsCombos.push(c); }
+      });
     });
     if (todosOsCombos.length > 0) {
-      await pesquisarPorCombos(progNm, todosOsCombos, medico, crm, cert, ocorr, ini ? fmt(ini) : '', fim ? fmt(fim) : '');
+      await pesquisarPorCombos(S.progNm, todosOsCombos, medico, crm, cert, ocorr, ini ? fmt(ini) : '', fim ? fmt(fim) : '');
       return;
     }
   }
@@ -722,7 +757,7 @@ function atualizarStatMulti() {
 
 function finalizarStatMulti() {
   var el = document.getElementById('spin-multi');
-  if (el) el.outerHTML = '<span style="font-size:11px;opacity:.7">&#10003;</span>';
+  if (el) el.outerHTML = '<span class="chk"></span>';
   var btn = document.getElementById('btn-filtro-inst');
   if (btn) { btn.disabled=false; btn.style.opacity=''; btn.style.cursor=''; }
 }
