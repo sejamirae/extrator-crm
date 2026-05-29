@@ -766,8 +766,9 @@ function atualizarView(d){
   var cols=COLS.filter(function(c){return src[0]&&(c in src[0]);});
   renderLinhas(d,cols.concat(['Telefone','Email']));
   d.forEach(function(r,i){var crm=r['CRM']||'';if(crmMulti[crm])colocarBadge(crm,[i],crmMulti[crm]);});
-  var statEl=document.querySelector('#stats .stat:last-child');
-  if(statEl) statEl.innerHTML='<div class="sv">'+d.length+'</div><div class="sl">Certificados</div>';
+  // Atualiza APENAS o contador de certificados, sem tocar nos outros stats
+  var sv=document.getElementById('sv-count');
+  if(sv) sv.textContent=d.length;
 }
 
 // ── Multi-cert ────────────────────────────────────────────────────────────────
