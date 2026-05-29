@@ -753,15 +753,25 @@ function setLog(msg,tipo,force){
 
 function tempoRestante(chave, feitos, total){
   var now=Date.now();
-  if(!_tempoInicio[chave]) _tempoInicio[chave]=now;
-  if(feitos===0) return '';
+  if(!_tempoInicio[chave]){
+    _tempoInicio[chave]=now;
+    return '';
+  }
+  // Só estima após pelo menos 2 lotes para ter dados confiáveis
+  if(feitos<2) return '';
   var elapsed=(now-_tempoInicio[chave])/1000;
+  if(elapsed<1) return '';
   var porSegundo=feitos/elapsed;
   var restantes=total-feitos;
+  if(restantes<=0) return '';
   var segundos=Math.round(restantes/porSegundo);
-  if(segundos<0||!isFinite(segundos)) return '';
-  if(segundos<60) return ' — cerca de '+segundos+'s restantes';
-  return ' — cerca de '+Math.round(segundos/60)+'min restantes';
+  if(!isFinite(segundos)||segundos<0) return '';
+  // Formata de forma legível
+  if(segundos<90) return ' — '+segundos+'s restantes';
+  var minutos=Math.floor(segundos/60);
+  var segs=segundos%60;
+  if(segs<10) return ' — '+minutos+'min '+segs+'s restantes';
+  return ' — '+minutos+'min '+Math.round(segs/10)*10+'s restantes';
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -852,7 +862,9 @@ async function iniciarMultiCheck(d){
   for(var i=0;i<paraVerificar.length;i+=BULK){
     var lote=paraVerificar.slice(i,i+BULK);
     loteNumM++;
-    setLog('Múltiplos certificados: '+Math.round(loteNumM/totalLotesM*100)+'%'+tempoRestante('multi',loteNumM,totalLotesM),'i');
+    // Inicializa o timer no primeiro lote
+    if(loteNumM===1) tempoRestante('multi',1,totalLotesM);
+    setLog('Múltiplos certificados: '+Math.round(loteNumM/totalLotesM*100)+'%'+tempoRestante('multi',loteNumM,totalLotesM),'i',loteNumM<=2);
     try{
       var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','),{signal:AbortSignal.timeout(25000)});
       var data=await r.json();
@@ -925,7 +937,9 @@ async function iniciarContatos(d){
   for(var i=0;i<crmsU.length;i+=BULK){
     var lote=crmsU.slice(i,i+BULK);
     loteNum++;
-    setLog('Contatos: '+Math.round(loteNum/totalLotes*100)+'%'+tempoRestante('contatos',loteNum,totalLotes),'i');
+    // Inicializa o timer no primeiro lote
+    if(loteNum===1) tempoRestante('contatos',1,totalLotes);
+    setLog('Contatos: '+Math.round(loteNum/totalLotes*100)+'%'+tempoRestante('contatos',loteNum,totalLotes),'i',loteNum<=2);
     try{
       var p=new URLSearchParams({email:didEmail,senha:didSenha,crms:lote.join(',')});
       var r=await fetch(API+'/telefone_bulk?'+p.toString());
