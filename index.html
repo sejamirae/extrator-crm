@@ -475,6 +475,7 @@ function resetResultados(){
   Object.keys(crmCache).forEach(function(k){delete crmCache[k];});
   Object.keys(contatoCache).forEach(function(k){delete contatoCache[k];});
   filtroInstOn=false; semTelOn=false;
+  _tempoInicio={}; _processos={multi:false,contatos:false};
   multiTotal=0; multiDone=0; telTotal=0; telDone=0;
   ['#stat-multi','#stat-tel'].forEach(function(s){document.querySelectorAll(s).forEach(function(el){el.remove();});});
   document.getElementById('tb').innerHTML='';
@@ -710,31 +711,57 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
   }
 
   // Habilita botões
-  document.getElementById('btn-xl').classList.remove('hidden');
-  document.getElementById('btn-xl').disabled=false;
   document.getElementById('btn-limpar').style.display='';
-  document.getElementById('btn-st').classList.remove('hidden');
   document.getElementById('btn-ex').disabled=false;
   document.getElementById('sp-ex').classList.add('hidden');
-  pararFaviconLoader();
   // Inicia verificações em background
   iniciarMultiCheck(todos);
   if(didEmail&&didSenha) iniciarContatos(todos);
   else { document.getElementById('btn-st').disabled=true; }
 }
 
+// ── Semáforo de processos ─────────────────────────────────────────────────────
+var _processos = {multi: false, contatos: false};
+function marcarInicio(proc){ _processos[proc]=true; }
+function marcarFim(proc){
+  _processos[proc]=false;
+  var algumAtivo=Object.values(_processos).some(function(v){return v;});
+  if(!algumAtivo){
+    // Tudo terminou — habilita XLSX e para favicon
+    document.getElementById('btn-xl').classList.remove('hidden');
+    document.getElementById('btn-xl').disabled=false;
+    document.getElementById('btn-st').disabled=false;
+    pararFaviconLoader();
+    setLog('','',true);
+    document.getElementById('log').style.display='none';
+  }
+}
+
 var _lastLogTime=0;
 var _lastLogTipo='';
+var _tempoInicio={};
 function setLog(msg,tipo,force){
   var now=Date.now();
-  // Só atualiza se forçado, se mudou o tipo, ou se passaram 5 segundos
   if(!force && _lastLogTipo===tipo && now-_lastLogTime < 4000) return;
   _lastLogTime=now;
   _lastLogTipo=tipo||'';
   var el=document.getElementById('log');
   el.textContent=msg;
   el.className='log'+(tipo==='i'?' log-i':'');
-  el.style.display='block';
+  el.style.display=(msg?'block':'none');
+}
+
+function tempoRestante(chave, feitos, total){
+  var now=Date.now();
+  if(!_tempoInicio[chave]) _tempoInicio[chave]=now;
+  if(feitos===0) return '';
+  var elapsed=(now-_tempoInicio[chave])/1000;
+  var porSegundo=feitos/elapsed;
+  var restantes=total-feitos;
+  var segundos=Math.round(restantes/porSegundo);
+  if(segundos<0||!isFinite(segundos)) return '';
+  if(segundos<60) return ' — cerca de '+segundos+'s restantes';
+  return ' — cerca de '+Math.round(segundos/60)+'min restantes';
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -808,6 +835,7 @@ async function iniciarMultiCheck(d){
   multiTotal=paraVerificar.length;
   var multiImediatos=Object.keys(crmMulti).length;
 
+  marcarInicio('multi');
   var statsEl=document.getElementById('stats');
   document.querySelectorAll('#stat-multi').forEach(function(el){el.remove();});
   var s=document.createElement('div');s.className='stat';s.id='stat-multi';
@@ -815,7 +843,7 @@ async function iniciarMultiCheck(d){
   s.innerHTML='<div class="sv" style="color:var(--gold)"><span id="sv-multi">'+totalAtual+'</span> '+(multiTotal>0?'<span class="spin"></span>':ckSvg('var(--gold)'))+'</div><div class="sl">Múltiplos Cert.</div>';
   statsEl.appendChild(s);
 
-  if(multiTotal===0){finalizarMulti();return;}
+  if(multiTotal===0){finalizarMulti();marcarFim('multi');return;}
 
   // Verifica via /contar_bulk (igual ao telefone_bulk)
   var BULK=8;
@@ -824,7 +852,7 @@ async function iniciarMultiCheck(d){
   for(var i=0;i<paraVerificar.length;i+=BULK){
     var lote=paraVerificar.slice(i,i+BULK);
     loteNumM++;
-    setLog('Verificando múltiplos: lote '+loteNumM+' de '+totalLotesM+' ('+Math.round(loteNumM/totalLotesM*100)+'%)','i');
+    setLog('Múltiplos certificados: '+Math.round(loteNumM/totalLotesM*100)+'%'+tempoRestante('multi',loteNumM,totalLotesM),'i');
     try{
       var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','),{signal:AbortSignal.timeout(25000)});
       var data=await r.json();
@@ -882,6 +910,7 @@ async function iniciarContatos(d){
   if(!crmsU.length) return;
   telTotal=crmsU.length; telDone=0;
 
+  marcarInicio('contatos');
   var statsEl=document.getElementById('stats');
   document.querySelectorAll('#stat-tel').forEach(function(el){el.remove();});
   var s=document.createElement('div');s.className='stat';s.id='stat-tel';
@@ -895,7 +924,7 @@ async function iniciarContatos(d){
   for(var i=0;i<crmsU.length;i+=BULK){
     var lote=crmsU.slice(i,i+BULK);
     loteNum++;
-    setLog('Buscando contatos: lote '+loteNum+' de '+totalLotes+' ('+Math.round(loteNum/totalLotes*100)+'%)','i');
+    setLog('Contatos: '+Math.round(loteNum/totalLotes*100)+'%'+tempoRestante('contatos',loteNum,totalLotes),'i');
     try{
       var p=new URLSearchParams({email:didEmail,senha:didSenha,crms:lote.join(',')});
       var r=await fetch(API+'/telefone_bulk?'+p.toString());
@@ -928,8 +957,7 @@ async function iniciarContatos(d){
       if(telDone>=telTotal){
         statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> '+ckSvg('var(--green)');
         document.getElementById('btn-st').classList.remove('hidden');
-        document.getElementById('btn-st').disabled=false;
-        document.getElementById('log').style.display='none';
+        marcarFim('contatos');
       } else {
         statEl.querySelector('.sv').innerHTML='<span style="color:var(--green)">'+com+'</span> <span class="spin" title="'+pct+'%"></span>';
       }
