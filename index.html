@@ -520,10 +520,15 @@ async function pesquisar(){
       await Promise.all(ufsSelec.map(function(uf){return _loadingUFs[uf];}));
     }
     // Atualiza combos dos programas selecionados com dados mais recentes
+    // Refresh obrigatório dos combos após garantir que UFs carregaram
     progsSelec.forEach(function(p){
       var nome=p.nome.trim().toUpperCase();
-      p.combos=(_combos[nome]||[]).slice();
+      var novos=(_combos[nome]||[]).slice();
+      if(novos.length>0) p.combos=novos; // só atualiza se encontrou
     });
+    // Debug: log quantos combos cada programa tem
+    var debugInfo=progsSelec.map(function(p){return p.nome+': '+p.combos.length+' combos';}).join(', ');
+    console.log('[Pesquisa] Combos por programa:', debugInfo);
   }
 
   // Define o caminho de pesquisa
@@ -546,7 +551,10 @@ async function pesquisar(){
       if(todosOsCombos.length>0){
         await buscarPorCombos(todosOsCombos,medico,crm,cert,ocorrF,iniF,fimF);
       } else {
-        setLog('Nenhuma combinação encontrada. Verifique se a UF está selecionada.','');
+        setLog('Nenhuma combinação encontrada para os programas selecionados. Verifique se a UF foi selecionada antes dos programas.','');
+        document.getElementById('btn-ex').disabled=false;
+        document.getElementById('sp-ex').classList.add('hidden');
+        return;
       }
     }
     // Caso 2: instituições específicas sem programa
@@ -599,10 +607,18 @@ async function pesquisar(){
 }
 
 async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
-  var BATCH=20,TIMEOUT=10000;
+  var BATCH=5,TIMEOUT=15000;
   var todos=[],dedup={};
+  var total=combos.length,processados=0;
+  var colsInicializadas=false;
+
+  // Barra de progresso
+  setLog('Iniciando busca em '+total+' combinações','i');
+
   for(var i=0;i<combos.length;i+=BATCH){
     var lote=combos.slice(i,i+BATCH);
+    processados+=lote.length;
+
     var res=await Promise.all(lote.map(async function(c){
       var ctrl=new AbortController();
       var t=setTimeout(function(){ctrl.abort();},TIMEOUT);
@@ -617,16 +633,74 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       try{var r=await fetch(API+'/certificados?'+p,{signal:ctrl.signal});clearTimeout(t);return await r.json();}
       catch(e){clearTimeout(t);return{dados:[]};}
     }));
+
+    var novos=[];
     res.forEach(function(d){
       (d.dados||[]).forEach(function(row){
-        var k=(row['Nº Certificado']||'')+(row['CRM']||'');
-        if(!dedup[k]){dedup[k]=1;todos.push(row);}
+        var nc=row['Nº Certificado']||'';
+        var cr=row['CRM']||'';
+        var k=nc&&cr?(nc+'|'+cr):('i'+todos.length);
+        if(!dedup[k]){dedup[k]=1;todos.push(row);novos.push(row);}
       });
     });
+
+    // Atualiza status
+    var pct=Math.round(processados/total*100);
+    setLog(pct+'% concluído — '+todos.length+' certificado'+(todos.length===1?'':'s')+' encontrado'+(todos.length===1?'':'s'),'i');
+
+    // Exibe progressivamente
+    if(novos.length>0){
+      if(!colsInicializadas){
+        // Inicializa tabela com primeiros resultados
+        var cols=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
+        var colsEx=cols.concat(['Telefone','Email']);
+        document.getElementById('stats').innerHTML=
+          '<div class="stat"><div class="sv" id="sv-count">'+todos.length+'</div><div class="sl">Certificados</div></div>';
+        document.getElementById('th').innerHTML=colsEx.map(function(c){return '<th>'+lbl(c)+'</th>';}).join('');
+        document.getElementById('tb').innerHTML='';
+        document.getElementById('res').classList.remove('hidden');
+        document.getElementById('btn-limpar').style.display='';
+        colsInicializadas=true;
+      }
+      // Acrescenta novas linhas
+      var tb=document.getElementById('tb');
+      var cols2=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
+      var colsEx2=cols2.concat(['Telefone','Email']);
+      var offset=todos.length-novos.length;
+      novos.forEach(function(row,j){
+        var i2=offset+j;
+        var crm2=row['CRM']||'';
+        var tds=colsEx2.map(function(c){
+          if(c==='CRM') return '<td style="white-space:nowrap"><span id="b-'+i2+'"></span>'+crm2+'</td>';
+          if(c==='Telefone') return '<td id="tel-'+i2+'"></td>';
+          if(c==='Email') return '<td id="eml-'+i2+'" style="font-size:11px"></td>';
+          return '<td>'+(row[c]||'')+'</td>';
+        });
+        var tr=document.createElement('tr');
+        tr.innerHTML=tds.join('');
+        tb.appendChild(tr);
+      });
+      // Atualiza contador
+      var sv=document.getElementById('sv-count');
+      if(sv) sv.textContent=todos.length;
+    }
   }
+
   rows=todos;
-  renderTabela(todos,'','');
-  if(todos.length===0) setLog('Nenhum certificado encontrado.','');
+  rowsOrig=todos.slice();
+  rowsView=todos.slice();
+  document.getElementById('log').style.display='none';
+
+  if(todos.length===0){
+    setLog('Nenhum certificado encontrado.','');
+    document.getElementById('btn-ex').disabled=false;
+    document.getElementById('sp-ex').classList.add('hidden');
+    return;
+  }
+
+  // Inicia verificações em background
+  iniciarMultiCheck(todos);
+  if(didEmail&&didSenha) iniciarContatos(todos);
 }
 
 function setLog(msg,tipo){
