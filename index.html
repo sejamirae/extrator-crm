@@ -656,9 +656,13 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       });
     });
 
-    // Atualiza status
+    // Atualiza status com tempo restante
     var pct=Math.round(processados/total*100);
-    setLog(pct+'% concluído — '+todos.length+' certificado'+(todos.length===1?'':'s')+' encontrado'+(todos.length===1?'':'s'),'i');
+    var loteIdx=Math.ceil(processados/BATCH);
+    var totalLotesCert=Math.ceil(total/BATCH);
+    if(loteIdx===1) tempoRestante('cert',1,totalLotesCert);
+    var tempo=tempoRestante('cert',loteIdx,totalLotesCert);
+    setLog(pct+'% — '+todos.length+' certificado'+(todos.length===1?'':'s')+' encontrado'+(todos.length===1?'':'s')+tempo,'i',loteIdx<=2);
 
     // Exibe progressivamente
     if(novos.length>0){
