@@ -888,6 +888,9 @@ document.querySelectorAll('input[type="date"]').forEach(function(inp) {
   inp.addEventListener('change', function() { this.style.color = this.value ? 'var(--text)' : ''; });
 });
 
+// Pré-aquece o servidor ao carregar a página
+fetch(API + '/').catch(function(){});
+
 </script>
 </body>
 </html>
