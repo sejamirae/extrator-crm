@@ -629,8 +629,6 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
 
   for(var i=0;i<combos.length;i+=BATCH){
     var lote=combos.slice(i,i+BATCH);
-    processados+=lote.length;
-
     var res=await Promise.all(lote.map(async function(c){
       var ctrl=new AbortController();
       var t=setTimeout(function(){ctrl.abort();},TIMEOUT);
@@ -656,13 +654,14 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       });
     });
 
-    // Atualiza status com tempo restante
+    // Atualiza status DEPOIS dos resultados chegarem
+    processados+=lote.length;
     var pct=Math.round(processados/total*100);
-    var loteIdx=Math.ceil(processados/BATCH);
-    var totalLotesCert=Math.ceil(total/BATCH);
-    if(loteIdx===1) tempoRestante('cert',1,totalLotesCert);
-    var tempo=tempoRestante('cert',loteIdx,totalLotesCert);
-    setLog(pct+'% — '+todos.length+' certificado'+(todos.length===1?'':'s')+' encontrado'+(todos.length===1?'':'s')+tempo,'i',loteIdx<=2);
+    var loteIdxC=Math.ceil(processados/BATCH);
+    var totalLotesC=Math.ceil(total/BATCH);
+    var tempoC='';
+    try{ tempoC=tempoRestante('cert',loteIdxC,totalLotesC); }catch(e){}
+    setLog(pct+'% — '+todos.length+' certificado'+(todos.length===1?'':'s')+' encontrado'+(todos.length===1?'':'s')+tempoC,'i',loteIdxC<=2);
 
     // Exibe progressivamente
     if(novos.length>0){
