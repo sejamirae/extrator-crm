@@ -713,7 +713,14 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
   if(didEmail&&didSenha) iniciarContatos(todos);
 }
 
-function setLog(msg,tipo){
+var _lastLogTime=0;
+var _lastLogTipo='';
+function setLog(msg,tipo,force){
+  var now=Date.now();
+  // Só atualiza se forçado, se mudou o tipo, ou se passaram 5 segundos
+  if(!force && _lastLogTipo===tipo && now-_lastLogTime < 5000) return;
+  _lastLogTime=now;
+  _lastLogTipo=tipo||'';
   var el=document.getElementById('log');
   el.textContent=msg;
   el.className='log'+(tipo==='i'?' log-i':'');
@@ -807,7 +814,7 @@ async function iniciarMultiCheck(d){
   for(var i=0;i<paraVerificar.length;i+=BULK){
     var lote=paraVerificar.slice(i,i+BULK);
     loteNumM++;
-    setLog('Verificando múltiplos certificados: lote '+loteNumM+' de '+totalLotesM+' ('+Math.round(loteNumM/totalLotesM*100)+'%)','i');
+    setLog('Verificando múltiplos: lote '+loteNumM+' de '+totalLotesM+' ('+Math.round(loteNumM/totalLotesM*100)+'%)','i');
     try{
       var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','),{signal:AbortSignal.timeout(25000)});
       var data=await r.json();
@@ -851,8 +858,8 @@ function atualizarStatMulti(){
 function finalizarMulti(){
   var el=document.getElementById('stat-multi');
   if(el){var v=el.querySelector('.sv');if(v)v.innerHTML='<span style="color:var(--gold)">'+(Object.keys(crmMulti).length||'0')+'</span> '+ckSvg('var(--gold)');}
-  // Habilita filtro de inst (XLSX já está disponível desde que os resultados carregaram)
-  if(rowsOrig.length>0){
+  // Mostra filtro de inst APENAS se uma instituição específica estiver selecionada
+  if(instsSelec.length===1){
     document.getElementById('btn-fi').classList.remove('hidden');
     document.getElementById('btn-fi').disabled=false;
   }
@@ -954,7 +961,12 @@ async function toggleFiltroInst(){
   filtroInstOn=!filtroInstOn;
   var btn=document.getElementById('btn-fi');
   btn.classList.toggle('on',filtroInstOn);
-  if(!filtroInstOn){atualizarView(rows);return;}
+  if(!filtroInstOn){
+    // Restaura TODOS os resultados originais
+    rows=rowsOrig.slice();
+    atualizarView(rows);
+    return;
+  }
   btn.disabled=true;
   var instAtual=(rowsOrig[0]&&rowsOrig[0]['Instituição'])||'';
   // Busca cache dos que precisam
@@ -978,10 +990,13 @@ function toggleSemTel(){
   semTelOn=!semTelOn;
   document.getElementById('btn-st').classList.toggle('on',semTelOn);
   if(semTelOn){
-    var f=rows.filter(function(r){var c=contatoCache[r['CRM']||''];return c&&c.telefone;});
+    var base=filtroInstOn?rowsView:rows;
+    var f=base.filter(function(r){var c=contatoCache[r['CRM']||''];return c&&c.telefone;});
     atualizarView(f);
   } else {
-    atualizarView(rows);
+    // Volta para o estado anterior (com ou sem filtro de inst)
+    var base2=filtroInstOn?rowsView:rows;
+    atualizarView(base2);
   }
 }
 
