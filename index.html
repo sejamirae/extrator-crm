@@ -1413,7 +1413,31 @@ var _MENU = {
   ]
 };
 
+var _helpOpen = false;
+var _activeTab = 'manual';
 var _navStack = [_MENU];
+
+function toggleHelp() {
+  _helpOpen = !_helpOpen;
+  document.getElementById('help-overlay').classList.toggle('open', _helpOpen);
+  document.getElementById('help-panel').classList.toggle('open', _helpOpen);
+  document.body.style.overflow = _helpOpen ? 'hidden' : '';
+}
+
+function setTab(tab) {
+  _activeTab = tab;
+  document.querySelectorAll('.hp-tab').forEach(function(el, i) {
+    el.classList.toggle('active', (i===0&&tab==='manual')||(i===1&&tab==='chat'));
+  });
+  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+  document.getElementById('tab-chat').classList.toggle('active', tab==='chat');
+  if (tab==='chat') {
+    setTimeout(function(){
+      document.getElementById('chat-msgs').scrollTop = 9999;
+      _initChat();
+    }, 50);
+  }
+}
 
 function _renderChat() {
   var node = _navStack[_navStack.length - 1];
