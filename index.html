@@ -1303,68 +1303,78 @@ function setTab(tab) {
   }
 }
 
+var _chatHistory = [];
+var _chatBusy = false;
+var _KB = [(['senha', 'acesso', 'login', 'entrar'], 'A senha de acesso ao Extrator CRM é fornecida pela equipe interna da Mirae. Digite-a na tela inicial e pressione Entrar. A sessão permanece ativa enquanto a aba do navegador estiver aberta.'), (['doctorid', 'doctor id', 'telefone', 'celular', 'contato', 'email', 'e-mail'], 'Para buscar telefone e e-mail dos médicos, configure suas credenciais do DoctorID na seção correspondente do formulário (identificada pelo ponto colorido). Clique em Configurar, insira seu e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador. Ponto verde significa configurado, ponto cinza significa que é necessário configurar.'), (['uf', 'estado', 'múltiplo', 'multiplo', 'selecionar', 'selecao', 'seleção', 'programa', 'instituição', 'instituicao', 'tag', 'etiqueta'], 'Estado, Instituição e Programa aceitam múltiplas seleções. Digite parte do nome no campo, clique no item desejado para criar a etiqueta de seleção. Repita para adicionar outros itens. Para remover um item, clique no símbolo × ao lado do nome na etiqueta.'), (['pesquisar', 'pesquisa', 'busca', 'buscar', 'como usar', 'como funciona'], 'Preencha os filtros desejados (Estado, Instituição, Programa, Período, Nome, CRM ou Número do Certificado) e clique em Pesquisar. O sistema exibe o progresso em tempo real: porcentagem concluída, total de certificados encontrados e tempo restante estimado. Ao finalizar, o botão Exportar Planilha fica disponível.'), (['demora', 'devagar', 'lento', 'demorado', 'tempo', 'espera'], 'A primeira pesquisa do dia pode demorar alguns segundos porque o servidor pode estar em repouso. Pesquisas grandes com múltiplos programas em São Paulo podem levar alguns minutos. O ícone na aba do navegador fica girando enquanto processa — você pode usar outras abas enquanto aguarda.'), (['múltiplas formações', 'multiplas formacoes', 'badge', 'ponto dourado', 'mais de uma', 'várias formações', 'certificações'], 'O ponto dourado ao lado do número de registro indica médicos com mais de uma certificação no SisCNRM. Clique no ponto para ver todas as certificações detalhadas daquele médico, incluindo instituição, programa e datas de cada uma.'), (['xlsx', 'planilha', 'exportar', 'download', 'baixar', 'excel'], 'O botão Exportar Planilha fica disponível ao final do processamento (quando o ícone da aba para de girar). A planilha sempre contém as colunas: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Data de Emissão, Observações, Múltiplas Formações, Total de Certificações, Telefone e E-mail. Os filtros ativos afetam a planilha — ative-os antes de exportar.'), (['filtro', 'ocultar', 'sem telefone', 'outra instituição', 'outra instituicao', 'recente'], 'Há dois filtros disponíveis após a pesquisa. "Ocultar médicos sem telefone" exibe apenas quem tem contato encontrado — disponível após a busca de contatos finalizar. "Ocultar médicos com certificação mais recente em outra instituição" é útil ao pesquisar por uma instituição específica, removendo médicos que já foram para outra — disponível após a verificação de múltiplas formações finalizar.'), (['limpar', 'reiniciar', 'reset', 'começar de novo', 'nova pesquisa'], 'O botão Limpar recarrega a página completamente, resetando todos os filtros, resultados e seleções anteriores. Use-o para iniciar uma nova pesquisa do zero.'), (['modo escuro', 'dark', 'escuro', 'tema'], 'Clique no botão "Modo Escuro" no canto superior direito para alternar o tema da interface. A preferência fica salva no navegador e é aplicada automaticamente nas próximas visitas.'), (['favicon', 'ícone', 'icone', 'aba', 'girando'], 'O ícone na aba do navegador fica girando enquanto o sistema está processando — buscando certificados, verificando múltiplas formações ou buscando contatos. Quando para de girar, significa que tudo foi concluído e a planilha está pronta para exportar.'), (['servidor', 'render', 'offline', 'conectar', 'conexão', 'erro'], 'O servidor pode estar em repouso após períodos sem uso. A mensagem "Conectando ao servidor" aparece por alguns segundos — é comportamento esperado. Se persistir, aguarde e tente novamente. O sistema acorda o servidor automaticamente ao abrir a página.'), (['siscnrm', 'mec', 'ministério', 'certificado', 'residência', 'residencia', 'médico'], 'O Extrator CRM consulta o SisCNRM — Sistema de Cadastro Nacional de Residências Médicas do Ministério da Educação. Os dados incluem instituição, programa de especialidade, período da residência, data de emissão e número do certificado de cada médico residente.'), (['crm', 'número de registro', 'registro'], 'O CRM (Número de Registro) identifica o médico no sistema. Você pode pesquisar diretamente por ele para encontrar todos os certificados daquele médico. Se aparecer com ponto dourado, clique para ver todas as formações.'), (['período', 'periodo', 'data', 'inicio', 'início', 'fim', 'término', 'termino', 'emissão', 'emissao'], 'O período de emissão filtra certificados pela data em que foram emitidos pelo MEC. Preencha a data de início e de fim. As colunas Início e Término se referem ao período da residência médica em si, enquanto Emissão é a data em que o certificado foi gerado.')];
+
+function _responder(msg) {
+  var q = msg.toLowerCase();
+  // Verifica saudações
+  if (/^(oi|olá|ola|bom dia|boa tarde|boa noite|hey|hello|hi)/.test(q.trim())) {
+    return 'Olá! Sou o assistente do Extrator CRM. Posso ajudar com dúvidas sobre como pesquisar certificados, configurar o DoctorID, usar os filtros, exportar planilhas e muito mais. O que você precisa?';
+  }
+  if (/obrigad|valeu|thanks/.test(q)) {
+    return 'Fico feliz em ajudar! Se tiver mais alguma dúvida sobre o Extrator CRM, é só perguntar.';
+  }
+  // Busca na base de conhecimento
+  var melhor = null;
+  var melhorPontos = 0;
+  for (var i = 0; i < _KB.length; i++) {
+    var palavras = _KB[i][0];
+    var pontos = 0;
+    for (var j = 0; j < palavras.length; j++) {
+      if (q.indexOf(palavras[j]) >= 0) pontos++;
+    }
+    if (pontos > melhorPontos) {
+      melhorPontos = pontos;
+      melhor = _KB[i][1];
+    }
+  }
+  if (melhorPontos > 0) return melhor;
+  return 'Não encontrei uma resposta específica para isso. Tente perguntar sobre: acesso ao sistema, configuração do DoctorID, como pesquisar, filtros, exportação de planilha, múltiplas formações, modo escuro ou desempenho da ferramenta.';
+}
+
 async function enviarChat() {
   if (_chatBusy) return;
   var input = document.getElementById('chat-input');
   var msg = input.value.trim();
   if (!msg) return;
   input.value = '';
-  input.style.height = '38px';
   _chatBusy = true;
   document.getElementById('chat-send').disabled = true;
 
-  // Mensagem do usuário
   var msgsEl = document.getElementById('chat-msgs');
+
+  // Mensagem do usuário
   var userEl = document.createElement('div');
   userEl.className = 'msg usr';
   userEl.textContent = msg;
   msgsEl.appendChild(userEl);
 
-  // Typing indicator
+  // Typing
   var typEl = document.createElement('div');
   typEl.className = 'msg-typing';
-  typEl.id = 'typing';
   typEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
   msgsEl.appendChild(typEl);
   msgsEl.scrollTop = msgsEl.scrollHeight;
 
-  // Histórico
-  _chatHistory.push({role:'user', content: msg});
+  // Simula tempo de resposta natural (500-900ms)
+  await new Promise(function(r){ setTimeout(r, 500 + Math.random()*400); });
 
-  try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: 'Você é o assistente do Extrator CRM, ferramenta interna da Mirae para consulta de Certificados de Residência Médica do SisCNRM/MEC.\n\nSOBRE A FERRAMENTA:\n- URL: sejamirae.github.io/extrator-crm\n- Acesso protegido por senha (fornecida pela equipe Mirae)\n- Backend no Render (siscnrm-backend.onrender.com)\n- Dados do SisCNRM/MEC via engenharia reversa da API\n\nFUNCIONALIDADES:\n- Pesquisa por: Estado (UF), Instituição, Programa, Período de Emissão, Nome do Médico, CRM, Número do Certificado\n- Seleção múltipla de UF, Instituição e Programa (etiquetas/tags)\n- Verificação automática de múltiplas formações (ponto dourado no CRM)\n- Busca automática de telefone e e-mail via DoctorID (requer configuração de credenciais)\n- Filtro: ocultar médicos sem telefone\n- Filtro: ocultar médicos com certificação mais recente em outra instituição\n- Exportação XLSX com colunas padronizadas\n- Modo escuro\n- Indicadores de progresso em tempo real com tempo restante\n\nPROCESSO DE PESQUISA:\n1. Conexão ao servidor (pode demorar se em repouso)\n2. Busca de certificados com progresso em tempo real\n3. Verificação de múltiplas formações em background\n4. Busca de contatos via DoctorID em background\n5. Ao finalizar tudo: botão Exportar Planilha é liberado e favicon para de girar\n\nDOCTORID:\n- Cada usuário configura a própria conta (doctorid.com.br)\n- Credenciais salvas no navegador\n- Ponto verde = configurado, ponto cinza = necessário configurar\n- Busca telefone celular e e-mail de cada médico\n\nCOLUNAS DO XLSX:\nNúmero do Certificado, Médico, Número de Registro (CRM), Programa, Instituição, Estado, Início, Término, Data de Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone, E-mail\n\nDICAS:\n- Pesquisas grandes em SP podem levar minutos — o ícone da aba continua girando\n- Primeira pesquisa do dia pode demorar (servidor em repouso)\n- Ative filtros antes de exportar\n- O botão Limpar recarrega a página completamente\n\nResponda de forma direta, clara e concisa. Use português do Brasil. Sem emojis. Máximo 3 parágrafos por resposta.',
-        messages: _chatHistory
-      })
-    });
-    var data = await res.json();
-    var reply = (data.content && data.content[0] && data.content[0].text) || 'Não consegui processar a resposta.';
-    _chatHistory.push({role:'assistant', content: reply});
+  typEl.remove();
+  var reply = _responder(msg);
 
-    document.getElementById('typing').remove();
-    var botEl = document.createElement('div');
-    botEl.className = 'msg bot';
-    // Formata **negrito**
-    botEl.innerHTML = reply.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-    msgsEl.appendChild(botEl);
-  } catch(e) {
-    document.getElementById('typing').remove();
-    var errEl = document.createElement('div');
-    errEl.className = 'msg bot';
-    errEl.textContent = 'Erro ao conectar ao assistente. Tente novamente.';
-    msgsEl.appendChild(errEl);
-  }
-
+  var botEl = document.createElement('div');
+  botEl.className = 'msg bot';
+  botEl.innerHTML = reply.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  msgsEl.appendChild(botEl);
   msgsEl.scrollTop = msgsEl.scrollHeight;
+
   _chatBusy = false;
   document.getElementById('chat-send').disabled = false;
   input.focus();
 }
+
 
 window.addEventListener('scroll',function(){
   var btn=document.getElementById('btn-top');
