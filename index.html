@@ -35,9 +35,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .cfg-knob{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .cfg-switch.on .cfg-knob{left:15px}
 .cfg-hdr-wrap{position:relative}
-.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none;box-sizing:border-box;transition:border-color .12s}
+.cfg-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none;box-sizing:border-box;transition:border-color .12s}
 .cfg-input:focus{border-color:var(--teal)}
-body.dark .cfg-input{background:#1e1e1e}
 #btn-manual{background:none;border:1px solid rgba(201,169,110,.45);color:rgba(201,169,110,.85);font-family:'Inter',sans-serif;font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;letter-spacing:.2px;margin-left:8px;animation:manual-pulse 3s ease-in-out infinite;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 #btn-manual:hover{border-color:var(--gold);color:var(--gold);animation:none}
 @keyframes manual-pulse{0%,100%{border-color:rgba(201,169,110,.45);color:rgba(201,169,110,.85);box-shadow:none}50%{border-color:rgba(201,169,110,.9);color:rgba(201,169,110,1);box-shadow:0 0 8px rgba(201,169,110,.25)}}
@@ -195,8 +194,8 @@ body.dark #login-screen input::placeholder{color:#606060}
 .chat-opt:active{transform:scale(.98);opacity:.7}
 .msg{max-width:88%;font-size:12px;line-height:1.6;padding:9px 12px;border-radius:3px;animation:msg-in .2s ease}
 @keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.chat-opt-back{background:none;border:none;color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;padding:4px 0;text-align:left;transition:color .12s}
-.chat-opt-back:hover{color:var(--text)}
+.chat-opt-back{background:var(--surface);border:1px solid var(--border);border-left:2px solid var(--muted);color:var(--muted);font-family:'Inter',sans-serif;font-size:11px;padding:8px 12px;border-radius:3px;cursor:pointer;text-align:left;transition:all .15s;line-height:1.4}
+.chat-opt-back:hover{border-left-color:var(--gold);color:var(--text)}
 
 </style>
 </head>
@@ -419,12 +418,15 @@ function salvarDidCfg(){
   if(!e||!s){document.getElementById('cfg-did-msg').textContent='Preencha os campos.';return;}
   didEmail=e; didSenha=s;
   localStorage.setItem('did_email',e); localStorage.setItem('did_senha',s);
-  document.getElementById('cfg-did-msg').textContent='Salvo';
   var dot=document.getElementById('did-dot');
-  if(dot) dot.classList.add('on');
   var st=document.getElementById('did-st');
+  if(dot) dot.classList.add('on');
   if(st) st.textContent='Configurado';
-  setTimeout(function(){document.getElementById('cfg-did-msg').textContent='';},2000);
+  document.getElementById('cfg-did-msg').textContent='Salvo';
+  setTimeout(function(){
+    document.getElementById('cfg-did-msg').textContent='';
+    toggleCfg(); // fecha painel após salvar
+  },1000);
 }
 
 function sincronizarDid(){
@@ -1249,16 +1251,16 @@ if(sessionStorage.getItem('auth')==='1'){
   document.getElementById('ac').style.display='block';
 }
 document.addEventListener('DOMContentLoaded',function(){
-  var e=localStorage.getItem('did_email');
-  var s=localStorage.getItem('did_senha');
+  var e=localStorage.getItem('did_email')||'';
+  var s=localStorage.getItem('did_senha')||'';
   if(e&&s){
     didEmail=e; didSenha=s;
+    // Só marca como configurado se AMBOS estiverem salvos
     var st=document.getElementById('did-st');
     var dot=document.getElementById('did-dot');
     if(st) st.textContent='Configurado';
     if(dot) dot.classList.add('on');
   }
-  // Init dark switch
   atualizarCfgDark();
 });
 // listeners movidos para abaixo
@@ -1322,12 +1324,13 @@ function toggleCfg(){
   _cfgOpen = !_cfgOpen;
   document.getElementById('cfg-panel').classList.toggle('open', _cfgOpen);
   if(_cfgOpen){
-    // Carrega credenciais salvas
+    // Sempre carrega do localStorage para ter os asteriscos na senha
+    var e=localStorage.getItem('did_email')||'';
+    var s=localStorage.getItem('did_senha')||'';
     var em=document.getElementById('cfg-did-email');
     var sn=document.getElementById('cfg-did-senha');
-    if(em&&didEmail) em.value=didEmail;
-    if(sn&&didSenha) sn.value=didSenha;
-    // Sincroniza switch do dark mode
+    if(em) em.value=e;
+    if(sn) sn.value=s;
     atualizarCfgDark();
   }
 }
@@ -1389,7 +1392,7 @@ var _MENU = {
           label: 'Pesquisar médicos de uma especialidade',
           msg: 'Selecione o Estado (UF) no formulário — isso carrega as instituições e programas. Depois vá ao campo Programa, digite a especialidade (ex: PEDIATRIA) e clique no item. Clique em Pesquisar. O sistema busca em todas as instituições daquele estado.',
           opts: [
-            {label:'E o telefone dos médicos, como obter?', msg:'Configure o DoctorID antes: localize DOCTORID no formulário, clique em Configurar, insira e-mail e senha do doctorid.com.br e salve. Após pesquisar, o sistema busca os contatos automaticamente.', opts:[]},
+            {label:'E o telefone dos médicos, como obter?', msg:'Clique em Configurações no canto superior direito do cabeçalho, insira e-mail e senha do DoctorID e clique em Salvar. Após pesquisar, o sistema busca os contatos automaticamente.', opts:[]},
             {label:'Como exportar os resultados?', msg:'Aguarde o ícone da aba parar de girar — indica que tudo foi processado. O botão Exportar Planilha ficará disponível. A planilha inclui telefone e e-mail se o DoctorID estiver configurado.', opts:[]}
           ]
         },
@@ -1417,7 +1420,7 @@ var _MENU = {
         },
         {
           label: 'Quero só médicos com telefone na planilha',
-          msg: 'Clique em Configurações no canto superior direito e insira seu e-mail e senha do DoctorID. Salve antes de pesquisar. Após a pesquisa, aguarde os contatos, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
+          msg: 'Clique em Configurações no canto superior direito e insira seu e-mail e senha do DoctorID e clique em Salvar. Após a pesquisa, aguarde os contatos, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
           opts: [
             {label:'O que vem na planilha exportada?', msg:'A planilha inclui: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone e E-mail.', opts:[]}
           ]
@@ -1467,11 +1470,11 @@ var _MENU = {
     },
     {
       label: 'Configurar o DoctorID',
-      msg: 'O DoctorID fornece telefone e e-mail dos médicos. O que você precisa saber?',
+      msg: 'Clique em Configurações no canto superior direito do cabeçalho. Insira seu e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador.',
       opts: [
         {
           label: 'Como configurar',
-          msg: 'Localize a seção DoctorID no formulário (ponto colorido). Clique em Configurar, insira e-mail e senha da sua conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador para as próximas visitas.',
+          msg: 'Clique em Configurações no canto superior direito do cabeçalho. Insira e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador.',
           opts: []
         },
         {
@@ -1643,10 +1646,10 @@ function _renderOpts(node) {
   if (_navStack.length > 1) {
     var back = document.createElement('button');
     back.className = 'chat-opt-back';
-    back.textContent = '← Voltar';
+    back.textContent = 'Voltar';
     back.onclick = function() {
       var msgsEl=document.getElementById('chat-msgs');
-      var uEl=document.createElement('div');uEl.className='msg usr';uEl.textContent='← Voltar';
+      var uEl=document.createElement('div');uEl.className='msg usr';uEl.textContent='Voltar';
       msgsEl.appendChild(uEl);_scrollBottom();
       document.getElementById('chat-opts').innerHTML='';
       _navStack.pop();
@@ -1684,7 +1687,7 @@ function _renderOpts(node) {
               optsEl.innerHTML = '';
               var backBtn = document.createElement('button');
               backBtn.className = 'chat-opt-back';
-              backBtn.textContent = '← Voltar';
+              backBtn.textContent = 'Voltar';
               backBtn.onclick = function() {
                 _navStack.pop();
                 var prev = _navStack[_navStack.length-1];
