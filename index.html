@@ -125,6 +125,60 @@ body.dark #login-screen input{background:#2a2a2a;border-color:var(--border);colo
 body.dark #login-screen input::placeholder{color:#606060}
 
 @media(max-width:580px){.g2,.g3{grid-template-columns:1fr}}
+/* ── Painel lateral ─────────────────────────────────────────────── */
+#help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;transition:opacity .2s}
+#help-overlay.open{display:block}
+#help-panel{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:95vw;background:#1a1a1a;border-left:1px solid #2e2e2e;z-index:301;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+#help-panel.open{transform:translateX(0)}
+.hp-header{background:#013b47;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2e2e2e;flex-shrink:0}
+.hp-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:-.1px}
+.hp-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:18px;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:color .15s}
+.hp-close:hover{color:#fff}
+.hp-tabs{display:flex;border-bottom:1px solid #2e2e2e;flex-shrink:0;background:#111}
+.hp-tab{flex:1;padding:10px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:#787878;border:none;background:none;font-family:'Inter',sans-serif;letter-spacing:.3px;text-transform:uppercase;transition:all .15s;border-bottom:2px solid transparent}
+.hp-tab.active{color:#c9a96e;border-bottom-color:#c9a96e;background:#1a1a1a}
+.hp-tab:hover:not(.active){color:#bbb}
+/* Manual */
+#tab-manual{flex:1;overflow-y:auto;padding:20px 20px 16px;display:none}
+#tab-manual.active{display:block}
+#tab-manual::-webkit-scrollbar{width:4px}
+#tab-manual::-webkit-scrollbar-track{background:#111}
+#tab-manual::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.mn-sec{font-size:9px;font-weight:700;color:#c9a96e;text-transform:uppercase;letter-spacing:1.2px;margin:20px 0 8px;padding-top:16px;border-top:1px solid #2e2e2e}
+.mn-sec:first-child{border-top:none;margin-top:0;padding-top:0}
+.mn-body{font-size:12px;line-height:1.65;color:#ccc;margin-bottom:8px}
+.mn-step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start}
+.mn-num{font-size:16px;font-weight:700;color:#c9a96e;line-height:1;flex-shrink:0;width:18px}
+.mn-step-body{flex:1}
+.mn-step-t{font-size:11.5px;font-weight:600;color:#e0e0e0;margin-bottom:2px}
+.mn-step-d{font-size:11px;color:#787878;line-height:1.5}
+.mn-box{background:#222;border-left:2.5px solid #013b47;padding:8px 12px;font-size:11px;color:#bbb;line-height:1.6;margin:8px 0;border-radius:0 3px 3px 0}
+.mn-box.gold{border-left-color:#c9a96e}
+.mn-tag{display:inline-block;background:#013b47;color:#fff;font-size:10px;padding:2px 7px;border-radius:2px;margin:2px}
+/* Chat */
+#tab-chat{flex:1;display:none;flex-direction:column;overflow:hidden}
+#tab-chat.active{display:flex}
+#chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+#chat-msgs::-webkit-scrollbar{width:4px}
+#chat-msgs::-webkit-scrollbar-track{background:#111}
+#chat-msgs::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.msg{max-width:88%;font-size:12px;line-height:1.6;padding:9px 12px;border-radius:3px}
+.msg.usr{align-self:flex-end;background:#013b47;color:#e0e0e0;border-radius:3px 3px 0 3px}
+.msg.bot{align-self:flex-start;background:#222;color:#ccc;border-radius:3px 3px 3px 0;border-left:2px solid #c9a96e}
+.msg.bot b{color:#e0e0e0}
+.msg-typing{align-self:flex-start;background:#222;border-radius:3px;padding:9px 14px;border-left:2px solid #c9a96e}
+.typing-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#787878;animation:tdot .9s infinite;margin:0 1.5px}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+#chat-input-wrap{padding:12px 14px;border-top:1px solid #2e2e2e;display:flex;gap:8px;flex-shrink:0;background:#111}
+#chat-input{flex:1;background:#222;border:1px solid #333;border-radius:3px;color:#e0e0e0;font-family:'Inter',sans-serif;font-size:12px;padding:8px 11px;outline:none;resize:none;height:38px;line-height:1.4;transition:border-color .12s}
+#chat-input:focus{border-color:#013b47}
+#chat-input::placeholder{color:#444}
+#chat-send{background:#013b47;border:none;color:#fff;border-radius:3px;padding:0 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;height:38px;flex-shrink:0;transition:background .12s}
+#chat-send:hover{background:#01505f}
+#chat-send:disabled{opacity:.4;cursor:not-allowed}
+
 </style>
 </head>
 <body>
@@ -236,6 +290,68 @@ body.dark #login-screen input::placeholder{color:#606060}
 </div>
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">&#8593;</button>
+
+
+<!-- Painel lateral -->
+<div id="help-overlay" onclick="toggleHelp()"></div>
+<div id="help-panel">
+  <div class="hp-header">
+    <span class="hp-title">Extrator CRM — Ajuda</span>
+    <button class="hp-close" onclick="toggleHelp()">&#215;</button>
+  </div>
+  <div class="hp-tabs">
+    <button class="hp-tab active" onclick="setTab('manual')">Manual</button>
+    <button class="hp-tab" onclick="setTab('chat')">Assistente</button>
+  </div>
+
+  <!-- Aba Manual -->
+  <div id="tab-manual" class="active">
+    <div class="mn-sec">O que é</div>
+    <p class="mn-body">O <b>Extrator CRM</b> é uma ferramenta interna da Mirae para consulta de Certificados de Residência Médica emitidos pelo SisCNRM do Ministério da Educação. Permite pesquisar por estado, instituição, programa e período, verificar múltiplas formações e enriquecer os dados com telefone e e-mail dos médicos via DoctorID.</p>
+
+    <div class="mn-sec">Acesso</div>
+    <p class="mn-body">Acesse <b>sejamirae.github.io/extrator-crm</b> e insira a senha fornecida pela equipe Mirae na tela de login.</p>
+    <div class="mn-box gold">Não compartilhe o endereço nem a senha com pessoas externas à equipe.</div>
+
+    <div class="mn-sec">Configuração do DoctorID</div>
+    <p class="mn-body">Configure suas credenciais para buscar telefone e e-mail automaticamente após cada pesquisa.</p>
+    <div class="mn-step"><div class="mn-num">1</div><div class="mn-step-body"><div class="mn-step-t">Localize a seção DoctorID</div><div class="mn-step-d">Identificada pelo ponto colorido no formulário de pesquisa.</div></div></div>
+    <div class="mn-step"><div class="mn-num">2</div><div class="mn-step-body"><div class="mn-step-t">Clique em Configurar</div><div class="mn-step-d">O formulário com e-mail e senha será exibido.</div></div></div>
+    <div class="mn-step"><div class="mn-num">3</div><div class="mn-step-body"><div class="mn-step-t">Insira suas credenciais do DoctorID</div><div class="mn-step-d">E-mail e senha da conta em doctorid.com.br.</div></div></div>
+    <div class="mn-step"><div class="mn-num">4</div><div class="mn-step-body"><div class="mn-step-t">Clique em Salvar</div><div class="mn-step-d">As credenciais ficam salvas no navegador para as próximas visitas.</div></div></div>
+    <div class="mn-box"><b>Ponto verde</b> = credenciais configuradas. <b>Ponto cinza</b> = necessário configurar.</div>
+
+    <div class="mn-sec">Como pesquisar</div>
+    <p class="mn-body">Campos disponíveis: <span class="mn-tag">Estado</span><span class="mn-tag">Instituição</span><span class="mn-tag">Programa</span><span class="mn-tag">Período de Emissão</span><span class="mn-tag">Nome</span><span class="mn-tag">Número de Registro</span><span class="mn-tag">Número do Certificado</span></p>
+    <p class="mn-body">Estado, Instituição e Programa aceitam <b>múltiplas seleções</b>. Digite parte do nome, clique no item para criar a etiqueta. Clique no × para remover.</p>
+    <div class="mn-step"><div class="mn-num">1</div><div class="mn-step-body"><div class="mn-step-t">Conexão ao servidor</div><div class="mn-step-d">Pode levar alguns segundos se estiver em repouso.</div></div></div>
+    <div class="mn-step"><div class="mn-num">2</div><div class="mn-step-body"><div class="mn-step-t">Busca de certificados</div><div class="mn-step-d">Progresso em tempo real com porcentagem e tempo restante.</div></div></div>
+    <div class="mn-step"><div class="mn-num">3</div><div class="mn-step-body"><div class="mn-step-t">Verificação de múltiplas formações</div><div class="mn-step-d">Marca com ponto dourado médicos com mais de uma certificação.</div></div></div>
+    <div class="mn-step"><div class="mn-num">4</div><div class="mn-step-body"><div class="mn-step-t">Busca de contatos</div><div class="mn-step-d">Telefone e e-mail via DoctorID. Exibe progresso e tempo restante.</div></div></div>
+    <div class="mn-step"><div class="mn-num">5</div><div class="mn-step-body"><div class="mn-step-t">Conclusão</div><div class="mn-step-d">O ícone da aba para de girar. O botão Exportar Planilha é liberado.</div></div></div>
+
+    <div class="mn-sec">Filtros e exportação</div>
+    <p class="mn-body"><b>Ocultar médicos sem telefone</b> — disponível após a busca de contatos finalizar.</p>
+    <p class="mn-body"><b>Ocultar médicos com certificação mais recente em outra instituição</b> — útil ao pesquisar por uma instituição específica.</p>
+    <div class="mn-box gold">Ative os filtros desejados antes de clicar em Exportar Planilha.</div>
+
+    <div class="mn-sec">Dicas</div>
+    <p class="mn-body"><b>Pesquisas grandes</b> — podem levar minutos. O ícone da aba continua girando. Você pode usar outras abas enquanto aguarda.</p>
+    <p class="mn-body"><b>Primeira pesquisa do dia</b> — o servidor pode estar em repouso. Normal aguardar alguns segundos.</p>
+    <p class="mn-body"><b>Limpar</b> — recarrega a página completamente, resetando tudo.</p>
+  </div>
+
+  <!-- Aba Chat -->
+  <div id="tab-chat">
+    <div id="chat-msgs">
+      <div class="msg bot">Olá! Sou o assistente do Extrator CRM. Posso responder dúvidas sobre como usar a ferramenta, interpretar resultados, configurar o DoctorID ou qualquer outra questão. Como posso ajudar?</div>
+    </div>
+    <div id="chat-input-wrap">
+      <textarea id="chat-input" placeholder="Digite sua dúvida..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarChat();}"></textarea>
+      <button id="chat-send" onclick="enviarChat()">Enviar</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-ov" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -1159,6 +1275,100 @@ function pararFaviconLoader(){
 }
 
 fetch(API+'/').catch(function(){});
+
+// ── Painel lateral ─────────────────────────────────────────────────────────
+var _helpOpen = false;
+var _activeTab = 'manual';
+var _chatHistory = [];
+var _chatBusy = false;
+
+function toggleHelp() {
+  _helpOpen = !_helpOpen;
+  document.getElementById('help-overlay').classList.toggle('open', _helpOpen);
+  document.getElementById('help-panel').classList.toggle('open', _helpOpen);
+  if (_helpOpen) document.body.style.overflow = 'hidden';
+  else document.body.style.overflow = '';
+}
+
+function setTab(tab) {
+  _activeTab = tab;
+  document.querySelectorAll('.hp-tab').forEach(function(el, i) {
+    el.classList.toggle('active', (i===0&&tab==='manual')||(i===1&&tab==='chat'));
+  });
+  document.getElementById('tab-manual').classList.toggle('active', tab==='manual');
+  document.getElementById('tab-chat').classList.toggle('active', tab==='chat');
+  if (tab==='chat') {
+    setTimeout(function(){
+      var msgs = document.getElementById('chat-msgs');
+      msgs.scrollTop = msgs.scrollHeight;
+      document.getElementById('chat-input').focus();
+    }, 50);
+  }
+}
+
+async function enviarChat() {
+  if (_chatBusy) return;
+  var input = document.getElementById('chat-input');
+  var msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  input.style.height = '38px';
+  _chatBusy = true;
+  document.getElementById('chat-send').disabled = true;
+
+  // Mensagem do usuário
+  var msgsEl = document.getElementById('chat-msgs');
+  var userEl = document.createElement('div');
+  userEl.className = 'msg usr';
+  userEl.textContent = msg;
+  msgsEl.appendChild(userEl);
+
+  // Typing indicator
+  var typEl = document.createElement('div');
+  typEl.className = 'msg-typing';
+  typEl.id = 'typing';
+  typEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+  msgsEl.appendChild(typEl);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  // Histórico
+  _chatHistory.push({role:'user', content: msg});
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Você é o assistente do Extrator CRM, ferramenta interna da Mirae para consulta de Certificados de Residência Médica do SisCNRM/MEC.\n\nSOBRE A FERRAMENTA:\n- URL: sejamirae.github.io/extrator-crm\n- Acesso protegido por senha (fornecida pela equipe Mirae)\n- Backend no Render (siscnrm-backend.onrender.com)\n- Dados do SisCNRM/MEC via engenharia reversa da API\n\nFUNCIONALIDADES:\n- Pesquisa por: Estado (UF), Instituição, Programa, Período de Emissão, Nome do Médico, CRM, Número do Certificado\n- Seleção múltipla de UF, Instituição e Programa (etiquetas/tags)\n- Verificação automática de múltiplas formações (ponto dourado no CRM)\n- Busca automática de telefone e e-mail via DoctorID (requer configuração de credenciais)\n- Filtro: ocultar médicos sem telefone\n- Filtro: ocultar médicos com certificação mais recente em outra instituição\n- Exportação XLSX com colunas padronizadas\n- Modo escuro\n- Indicadores de progresso em tempo real com tempo restante\n\nPROCESSO DE PESQUISA:\n1. Conexão ao servidor (pode demorar se em repouso)\n2. Busca de certificados com progresso em tempo real\n3. Verificação de múltiplas formações em background\n4. Busca de contatos via DoctorID em background\n5. Ao finalizar tudo: botão Exportar Planilha é liberado e favicon para de girar\n\nDOCTORID:\n- Cada usuário configura a própria conta (doctorid.com.br)\n- Credenciais salvas no navegador\n- Ponto verde = configurado, ponto cinza = necessário configurar\n- Busca telefone celular e e-mail de cada médico\n\nCOLUNAS DO XLSX:\nNúmero do Certificado, Médico, Número de Registro (CRM), Programa, Instituição, Estado, Início, Término, Data de Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone, E-mail\n\nDICAS:\n- Pesquisas grandes em SP podem levar minutos — o ícone da aba continua girando\n- Primeira pesquisa do dia pode demorar (servidor em repouso)\n- Ative filtros antes de exportar\n- O botão Limpar recarrega a página completamente\n\nResponda de forma direta, clara e concisa. Use português do Brasil. Sem emojis. Máximo 3 parágrafos por resposta.',
+        messages: _chatHistory
+      })
+    });
+    var data = await res.json();
+    var reply = (data.content && data.content[0] && data.content[0].text) || 'Não consegui processar a resposta.';
+    _chatHistory.push({role:'assistant', content: reply});
+
+    document.getElementById('typing').remove();
+    var botEl = document.createElement('div');
+    botEl.className = 'msg bot';
+    // Formata **negrito**
+    botEl.innerHTML = reply.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    msgsEl.appendChild(botEl);
+  } catch(e) {
+    document.getElementById('typing').remove();
+    var errEl = document.createElement('div');
+    errEl.className = 'msg bot';
+    errEl.textContent = 'Erro ao conectar ao assistente. Tente novamente.';
+    msgsEl.appendChild(errEl);
+  }
+
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  _chatBusy = false;
+  document.getElementById('chat-send').disabled = false;
+  input.focus();
+}
+
 window.addEventListener('scroll',function(){
   var btn=document.getElementById('btn-top');
   if(btn) btn.style.display=window.scrollY>300?'flex':'none';
