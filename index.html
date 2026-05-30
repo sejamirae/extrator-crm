@@ -296,9 +296,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <!-- Aba Chat -->
   <div id="tab-chat" class="active">
-    <div id="chat-msgs">
-      <div class="msg bot">Olá! Sou o assistente do Extrator CRM. Posso responder dúvidas sobre como usar a ferramenta, interpretar resultados, configurar o DoctorID ou qualquer outra questão. Como posso ajudar?</div>
-    </div>
+    <div id="chat-msgs"></div>
     <div id="chat-opts"></div>
   </div>
 </div>
@@ -1378,7 +1376,16 @@ function toggleHelp() {
   document.getElementById('help-overlay').classList.toggle('open', _helpOpen);
   document.getElementById('help-panel').classList.toggle('open', _helpOpen);
   document.body.style.overflow = _helpOpen ? 'hidden' : '';
-  if (_helpOpen) setTimeout(_initChat, 80);
+  if (_helpOpen) {
+    setTimeout(_initChat, 80);
+  } else {
+    // Reset ao fechar
+    setTimeout(function() {
+      document.getElementById('chat-msgs').innerHTML = '';
+      document.getElementById('chat-opts').innerHTML = '';
+      _navStack = [_MENU];
+    }, 300);
+  }
 }
 
 function setTab(tab) {
@@ -1396,81 +1403,100 @@ function setTab(tab) {
   }
 }
 
-function _renderChat() {
-  var node = _navStack[_navStack.length - 1];
+function _typing(callback) {
   var msgsEl = document.getElementById('chat-msgs');
-  var optsEl = document.getElementById('chat-opts');
-
-  // Adiciona a mensagem do nó
-  var botEl = document.createElement('div');
-  botEl.className = 'msg bot';
-  botEl.textContent = node.msg;
-  msgsEl.appendChild(botEl);
+  var typEl = document.createElement('div');
+  typEl.className = 'msg-typing';
+  typEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+  msgsEl.appendChild(typEl);
   msgsEl.scrollTop = msgsEl.scrollHeight;
+  setTimeout(function() {
+    typEl.remove();
+    callback();
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }, 600 + Math.random()*400);
+}
 
-  // Renderiza opções
+function _typeMsg(text, callback) {
+  var msgsEl = document.getElementById('chat-msgs');
+  var el = document.createElement('div');
+  el.className = 'msg bot';
+  msgsEl.appendChild(el);
+  var i = 0;
+  var speed = Math.max(8, Math.min(18, Math.round(1800 / text.length)));
+  function tick() {
+    if (i < text.length) {
+      el.textContent += text[i++];
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      setTimeout(tick, speed);
+    } else {
+      if (callback) callback();
+    }
+  }
+  tick();
+}
+
+function _renderOpts(node) {
+  var optsEl = document.getElementById('chat-opts');
+  var msgsEl = document.getElementById('chat-msgs');
   optsEl.innerHTML = '';
-
   if (_navStack.length > 1) {
     var back = document.createElement('button');
     back.className = 'chat-opt-back';
     back.textContent = '← Voltar';
-    back.onclick = function() { _navStack.pop(); _renderChat(); };
+    back.onclick = function() { _navStack.pop(); _typing(function(){ _typeMsg(node.msg || _navStack[_navStack.length-1].msg, function(){ _renderOpts(_navStack[_navStack.length-1]); }); }); };
     optsEl.appendChild(back);
   }
-
   if (node.opts && node.opts.length > 0) {
-    node.opts.forEach(function(opt, i) {
+    node.opts.forEach(function(opt) {
       var btn = document.createElement('button');
       btn.className = 'chat-opt';
       btn.textContent = opt.label;
       btn.onclick = function() {
-        // Adiciona a pergunta como mensagem do usuário
         var userEl = document.createElement('div');
         userEl.className = 'msg usr';
         userEl.textContent = opt.label;
         msgsEl.appendChild(userEl);
-
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        optsEl.innerHTML = '';
         if (opt.opts && opt.opts.length > 0) {
           _navStack.push(opt);
-          setTimeout(_renderChat, 300);
+          _typing(function() { _typeMsg(opt.msg, function() { _renderOpts(opt); }); });
         } else {
-          // Resposta final
-          setTimeout(function() {
-            var botEl = document.createElement('div');
-            botEl.className = 'msg bot';
-            botEl.textContent = opt.msg;
-            msgsEl.appendChild(botEl);
-            msgsEl.scrollTop = msgsEl.scrollHeight;
-
-            // Mostra botão de voltar ao menu
-            optsEl.innerHTML = '';
-            var backBtn = document.createElement('button');
-            backBtn.className = 'chat-opt-back';
-            backBtn.textContent = '← Voltar ao menu';
-            backBtn.onclick = function() { _navStack = [_MENU]; _renderChat(); };
-            var maisBtn = document.createElement('button');
-            maisBtn.className = 'chat-opt';
-            maisBtn.textContent = 'Tenho mais dúvidas';
-            maisBtn.onclick = function() {
-              _navStack = [_MENU];
-              _renderChat();
-            };
-            optsEl.appendChild(backBtn);
-            optsEl.appendChild(maisBtn);
-          }, 300);
+          _typing(function() {
+            _typeMsg(opt.msg, function() {
+              optsEl.innerHTML = '';
+              var backBtn = document.createElement('button');
+              backBtn.className = 'chat-opt-back';
+              backBtn.textContent = '← Voltar';
+              backBtn.onclick = function() {
+                _navStack.pop();
+                var prev = _navStack[_navStack.length-1];
+                _typing(function(){ _typeMsg(prev.msg, function(){ _renderOpts(prev); }); });
+              };
+              var maisBtn = document.createElement('button');
+              maisBtn.className = 'chat-opt';
+              maisBtn.textContent = 'Tenho mais dúvidas';
+              maisBtn.onclick = function() { _navStack=[_MENU]; _typing(function(){ _typeMsg(_MENU.msg, function(){ _renderOpts(_MENU); }); }); };
+              optsEl.appendChild(backBtn);
+              optsEl.appendChild(maisBtn);
+            });
+          });
         }
-        msgsEl.scrollTop = msgsEl.scrollHeight;
       };
       optsEl.appendChild(btn);
     });
   }
 }
 
-// Inicializa o chat quando a aba é aberta
+function _renderChat() {
+  var node = _navStack[_navStack.length - 1];
+  _typing(function() { _typeMsg(node.msg, function() { _renderOpts(node); }); });
+}
+
 function _initChat() {
   var msgsEl = document.getElementById('chat-msgs');
-  if (msgsEl.children.length <= 1) {
+  if (msgsEl.children.length === 0) {
     _navStack = [_MENU];
     _renderChat();
   }
