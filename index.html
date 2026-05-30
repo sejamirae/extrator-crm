@@ -35,8 +35,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .cfg-knob{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .cfg-switch.on .cfg-knob{left:15px}
 .cfg-hdr-wrap{position:relative}
-.cfg-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none;box-sizing:border-box;transition:border-color .12s}
-.cfg-input:focus{border-color:var(--teal)}
+.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:8px 11px;outline:none;box-sizing:border-box;transition:border-color .12s}
+.cfg-input:focus{border-color:var(--teal);background:var(--surface)}
+body.dark .cfg-input{background:#1e2224}
+body.dark .cfg-input:focus{background:#222}
 #btn-manual{background:none;border:1px solid rgba(201,169,110,.45);color:rgba(201,169,110,.85);font-family:'Inter',sans-serif;font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;letter-spacing:.2px;margin-left:8px;animation:manual-pulse 3s ease-in-out infinite;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 #btn-manual:hover{border-color:var(--gold);color:var(--gold);animation:none}
 @keyframes manual-pulse{0%,100%{border-color:rgba(201,169,110,.45);color:rgba(201,169,110,.85);box-shadow:none}50%{border-color:rgba(201,169,110,.9);color:rgba(201,169,110,1);box-shadow:0 0 8px rgba(201,169,110,.25)}}
@@ -430,7 +432,6 @@ function salvarDidCfg(){
 }
 
 function sincronizarDid(){
-  // atualiza as variáveis em tempo real conforme digita
   didEmail=(document.getElementById('cfg-did-email').value||'').trim();
   didSenha=(document.getElementById('cfg-did-senha').value||'').trim();
 }
@@ -1250,16 +1251,28 @@ if(sessionStorage.getItem('auth')==='1'){
   document.getElementById('ls').style.display='none';
   document.getElementById('ac').style.display='block';
 }
+// Carrega credenciais IMEDIATAMENTE (antes do DOMContentLoaded)
+(function(){
+  var e=localStorage.getItem('did_email')||'';
+  var s=localStorage.getItem('did_senha')||'';
+  if(e&&s){ didEmail=e; didSenha=s; }
+})();
+
 document.addEventListener('DOMContentLoaded',function(){
   var e=localStorage.getItem('did_email')||'';
   var s=localStorage.getItem('did_senha')||'';
   if(e&&s){
-    didEmail=e; didSenha=s;
-    // Só marca como configurado se AMBOS estiverem salvos
+    // Atualiza indicadores na tela
     var st=document.getElementById('did-st');
     var dot=document.getElementById('did-dot');
     if(st) st.textContent='Configurado';
     if(dot) dot.classList.add('on');
+  } else {
+    // Garante que o dot NÃO fica verde se não houver credenciais
+    var dot2=document.getElementById('did-dot');
+    if(dot2) dot2.classList.remove('on');
+    var st2=document.getElementById('did-st');
+    if(st2) st2.textContent='';
   }
   atualizarCfgDark();
 });
@@ -1294,6 +1307,12 @@ function pararFaviconLoader(){
 }
 
 fetch(API+'/').catch(function(){});
+
+// Botão voltar ao topo
+window.addEventListener('scroll',function(){
+  var btn=document.getElementById('btn-top');
+  if(btn) btn.style.display=window.scrollY>300?'flex':'none';
+});
 
 function verificarLimparSelecoes(){
   var temAlgo=
