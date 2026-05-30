@@ -1232,8 +1232,56 @@ var _chatBusy = false;
 // ── Árvore de perguntas ───────────────────────────────────────────────────────
 var _MENU = {
   id: 'root',
-  msg: 'Olá! Sou o assistente do Extrator CRM. Sobre o que você tem dúvidas?',
-  opts: [
+  msg: 'Olá! Sou o assistente do Extrator CRM. Como posso ajudar?',
+  opts: [
+    {
+      label: 'Guia de primeiro acesso — por onde começar',
+      msg: 'Perfeito! Vou te guiar. O que você quer fazer?',
+      opts: [
+        {
+          label: 'Pesquisar médicos de uma especialidade',
+          msg: 'Selecione o Estado (UF) no formulário — isso carrega as instituições e programas. Depois vá ao campo Programa, digite a especialidade (ex: PEDIATRIA) e clique no item. Clique em Pesquisar. O sistema busca em todas as instituições daquele estado.',
+          opts: [
+            {label:'E o telefone dos médicos, como obter?', msg:'Configure o DoctorID antes: localize DOCTORID no formulário, clique em Configurar, insira e-mail e senha do doctorid.com.br e salve. Após pesquisar, o sistema busca os contatos automaticamente.', opts:[]},
+            {label:'Como exportar os resultados?', msg:'Aguarde o ícone da aba parar de girar — indica que tudo foi processado. O botão Exportar Planilha ficará disponível. A planilha inclui telefone e e-mail se o DoctorID estiver configurado.', opts:[]}
+          ]
+        },
+        {
+          label: 'Pesquisar várias especialidades juntas',
+          msg: 'No campo Programa, adicione cada especialidade uma por uma clicando no item para criar etiquetas. Ao pesquisar, o sistema combina os resultados de todas as especialidades selecionadas. Você também pode combinar vários estados e instituições.',
+          opts: [
+            {label:'Pesquisas grandes demoram muito?', msg:'Podem levar alguns minutos, sim. O ícone da aba fica girando enquanto processa e a tela mostra a porcentagem e o tempo restante estimado. Você pode usar outras abas enquanto aguarda — a pesquisa continua em segundo plano.', opts:[]}
+          ]
+        },
+        {
+          label: 'Pesquisar por período de emissão',
+          msg: 'Preencha Emissão — Início e Emissão — Fim. Combine com UF, programa ou instituição para refinar. Por exemplo: todos os certificados de Pediatria em SP emitidos em 2025.',
+          opts: [
+            {label:'Qual a diferença entre Emissão e Início/Término?', msg:'Início e Término são as datas da residência médica. Emissão é quando o MEC emitiu o certificado — geralmente alguns dias ou meses após o Término. Use o filtro de Emissão para buscar certificados recentes.', opts:[]}
+          ]
+        },
+        {
+          label: 'Pesquisar um médico específico (nome ou CRM)',
+          msg: 'Você pode pesquisar por nome, sobrenome ou CRM. Para nome parcial, selecione a instituição primeiro. O campo converte automaticamente para caixa alta.',
+          opts: [
+            {label:'Tenho o CRM', msg:'Digite o número no campo CRM e clique em Pesquisar. O sistema retorna todos os certificados daquele médico. Ponto dourado ao lado do CRM indica mais de uma formação — clique para ver todas.', opts:[]},
+            {label:'Tenho o nome ou sobrenome', msg:'Digite no campo Nome. Aceita nome parcial e converte para caixa alta automaticamente. Para melhores resultados, selecione também a instituição ou combine com UF e período.', opts:[]}
+          ]
+        },
+        {
+          label: 'Quero só médicos com telefone na planilha',
+          msg: 'Configure o DoctorID antes de pesquisar (localize DOCTORID no formulário, clique em Configurar e insira suas credenciais). Após a pesquisa, aguarde os contatos serem buscados, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
+          opts: [
+            {label:'O que vem na planilha exportada?', msg:'A planilha inclui: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone e E-mail.', opts:[]}
+          ]
+        },
+        {
+          label: 'Quero médicos ativos em uma instituição específica',
+          msg: 'Selecione a instituição no campo correspondente e pesquise. Após o resultado, ative o filtro "Ocultar médicos com certificação mais recente em outra instituição". Isso remove quem já tem formação mais recente em outro lugar.',
+          opts: []
+        }
+      ]
+    },
     {
       label: 'Como acessar o sistema',
       msg: 'O Extrator CRM está em sejamirae.github.io/extrator-crm. A senha de acesso é fornecida pela equipe Mirae. Digite-a na tela inicial e pressione Entrar. A sessão permanece ativa enquanto a aba estiver aberta.',
@@ -1477,7 +1525,17 @@ function _renderOpts(node) {
               var maisBtn = document.createElement('button');
               maisBtn.className = 'chat-opt';
               maisBtn.textContent = 'Tenho mais dúvidas';
-              maisBtn.onclick = function() { _navStack=[_MENU]; _typing(function(){ _typeMsg(_MENU.msg, function(){ _renderOpts(_MENU); }); }); };
+              maisBtn.onclick = function() {
+                var msgsEl = document.getElementById('chat-msgs');
+                var userEl = document.createElement('div');
+                userEl.className = 'msg usr';
+                userEl.textContent = 'Tenho mais dúvidas';
+                msgsEl.appendChild(userEl);
+                msgsEl.scrollTop = msgsEl.scrollHeight;
+                document.getElementById('chat-opts').innerHTML = '';
+                _navStack = [_MENU];
+                _typing(function(){ _typeMsg(_MENU.msg, function(){ _renderOpts(_MENU); }); });
+              };
               optsEl.appendChild(backBtn);
               optsEl.appendChild(maisBtn);
             });
