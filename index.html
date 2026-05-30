@@ -35,6 +35,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .cfg-knob{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .cfg-switch.on .cfg-knob{left:15px}
 .cfg-hdr-wrap{position:relative}
+.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none;box-sizing:border-box;transition:border-color .12s}
+.cfg-input:focus{border-color:var(--teal)}
+body.dark .cfg-input{background:#1e1e1e}
 #btn-manual{background:none;border:1px solid rgba(201,169,110,.45);color:rgba(201,169,110,.85);font-family:'Inter',sans-serif;font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;letter-spacing:.2px;margin-left:8px;animation:manual-pulse 3s ease-in-out infinite;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 #btn-manual:hover{border-color:var(--gold);color:var(--gold);animation:none}
 @keyframes manual-pulse{0%,100%{border-color:rgba(201,169,110,.45);color:rgba(201,169,110,.85);box-shadow:none}50%{border-color:rgba(201,169,110,.9);color:rgba(201,169,110,1);box-shadow:0 0 8px rgba(201,169,110,.25)}}
@@ -227,11 +230,11 @@ body.dark #login-screen input::placeholder{color:#606060}
 <div class="cfg-item-label">DoctorID</div>
 <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
   <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Email</label>
-  <input type="email" id="cfg-did-email" placeholder="email@exemplo.com" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none" oninput="sincronizarDid()">
+  <input type="email" id="cfg-did-email" placeholder="email@exemplo.com" class="cfg-input" oninput="sincronizarDid()">
 </div>
 <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
   <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Senha</label>
-  <input type="password" id="cfg-did-senha" placeholder="Senha do DoctorID" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:7px 10px;outline:none" oninput="sincronizarDid()">
+  <input type="password" id="cfg-did-senha" placeholder="Senha do DoctorID" class="cfg-input" oninput="sincronizarDid()">
 </div>
 <div style="padding:10px 14px;display:flex;gap:8px;align-items:center">
   <button class="btn btn-p" style="font-size:11px;padding:6px 14px" onclick="salvarDidCfg()">Salvar</button>
@@ -303,11 +306,8 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <div class="row" style="margin-top:14px">
     <button class="btn btn-p" id="btn-ex" onclick="pesquisar()"><span id="sp-ex" class="hidden spin" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>Pesquisar</button>
-    <button class="btn btn-o" id="btn-limpar" onclick="location.reload()" style="display:none">Limpar</button>
-    <button class="btn btn-o" id="btn-limpar-filtros" onclick="limparFiltros()" title="Limpar seleções" style="display:none">
-      <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><line x1="1" y1="1" x2="10" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="10" y1="1" x2="1" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      Limpar seleções
-    </button>
+    <button class="btn btn-o" id="btn-limpar" onclick="location.reload()" style="display:none">Nova pesquisa</button>
+    <button class="btn btn-o" id="btn-limpar-filtros" onclick="limparFiltros()" style="display:none">Limpar seleções</button>
     <button class="btn btn-g hidden" id="btn-xl" onclick="exportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-st" onclick="toggleSemTel()" disabled><span class="track"></span>Ocultar médicos sem telefone</button>
     <button class="tog hidden" id="btn-fi" onclick="toggleFiltroInst()" disabled><span class="track"></span>Ocultar médicos com certificação mais recente em outra instituição</button>
@@ -747,7 +747,7 @@ async function pesquisar(){
       var r=await fetch(API+'/certificados?'+params.toString());
       var data=await r.json();
       if(data.error) throw new Error(data.error);
-      if((data.total||0)===0) setLog('Nenhum certificado encontrado.','');
+      if((data.total||0)===0){ setLog('Nenhum certificado encontrado.',''); pararFaviconLoader(); }
       rows=data.dados||[];
       renderTabela(rows,'','');
     }
@@ -849,6 +849,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
 
   if(todos.length===0){
     setLog('Nenhum certificado encontrado.','');
+    pararFaviconLoader();
     document.getElementById('btn-ex').disabled=false;
     document.getElementById('sp-ex').classList.add('hidden');
     return;
@@ -1416,7 +1417,7 @@ var _MENU = {
         },
         {
           label: 'Quero só médicos com telefone na planilha',
-          msg: 'Configure o DoctorID antes de pesquisar (localize DOCTORID no formulário, clique em Configurar e insira suas credenciais). Após a pesquisa, aguarde os contatos serem buscados, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
+          msg: 'Clique em Configurações no canto superior direito e insira seu e-mail e senha do DoctorID. Salve antes de pesquisar. Após a pesquisa, aguarde os contatos, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
           opts: [
             {label:'O que vem na planilha exportada?', msg:'A planilha inclui: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone e E-mail.', opts:[]}
           ]
@@ -1643,7 +1644,15 @@ function _renderOpts(node) {
     var back = document.createElement('button');
     back.className = 'chat-opt-back';
     back.textContent = '← Voltar';
-    back.onclick = function() { _navStack.pop(); _typing(function(){ _typeMsg(node.msg || _navStack[_navStack.length-1].msg, function(){ _renderOpts(_navStack[_navStack.length-1]); }); }); };
+    back.onclick = function() {
+      var msgsEl=document.getElementById('chat-msgs');
+      var uEl=document.createElement('div');uEl.className='msg usr';uEl.textContent='← Voltar';
+      msgsEl.appendChild(uEl);_scrollBottom();
+      document.getElementById('chat-opts').innerHTML='';
+      _navStack.pop();
+      var prev=_navStack[_navStack.length-1];
+      _typing(function(){ _typeMsg(prev.msg,function(){ _renderOpts(prev); }); });
+    };
     optsEl.appendChild(back);
   }
   if (node.opts && node.opts.length > 0) {
