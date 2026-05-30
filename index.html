@@ -35,10 +35,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .cfg-knob{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .cfg-switch.on .cfg-knob{left:15px}
 .cfg-hdr-wrap{position:relative}
-.cfg-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:8px 11px;outline:none;box-sizing:border-box;transition:border-color .12s}
-.cfg-input:focus{border-color:var(--teal);background:var(--surface)}
-body.dark .cfg-input{background:#1e2224}
-body.dark .cfg-input:focus{background:#222}
+.cfg-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:8px 11px;outline:none;box-sizing:border-box;transition:border-color .12s}
+.cfg-input:focus{border-color:var(--teal)}
+body.dark .cfg-input{background:#2a2a2a;color:#e8e8e8}
 #btn-manual{background:none;border:1px solid rgba(201,169,110,.45);color:rgba(201,169,110,.85);font-family:'Inter',sans-serif;font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;letter-spacing:.2px;margin-left:8px;animation:manual-pulse 3s ease-in-out infinite;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 #btn-manual:hover{border-color:var(--gold);color:var(--gold);animation:none}
 @keyframes manual-pulse{0%,100%{border-color:rgba(201,169,110,.45);color:rgba(201,169,110,.85);box-shadow:none}50%{border-color:rgba(201,169,110,.9);color:rgba(201,169,110,1);box-shadow:0 0 8px rgba(201,169,110,.25)}}
@@ -415,25 +414,33 @@ function toggleDid(){var f=document.getElementById('did-form');f.style.display=f
 function salvarDid(){} // legado
 
 function salvarDidCfg(){
-  var e=(document.getElementById('cfg-did-email').value||'').trim();
-  var s=(document.getElementById('cfg-did-senha').value||'').trim();
-  if(!e||!s){document.getElementById('cfg-did-msg').textContent='Preencha os campos.';return;}
-  didEmail=e; didSenha=s;
-  localStorage.setItem('did_email',e); localStorage.setItem('did_senha',s);
+  var emailEl=document.getElementById('cfg-did-email');
+  var senhaEl=document.getElementById('cfg-did-senha');
+  var e=(emailEl?emailEl.value:'').trim();
+  var s=(senhaEl?senhaEl.value:'').trim();
+  if(!e||!s){
+    var msg=document.getElementById('cfg-did-msg');
+    if(msg) msg.textContent='Preencha e-mail e senha.';
+    return;
+  }
+  // Salva PRIMEIRO no localStorage
+  localStorage.setItem('did_email',e);
+  localStorage.setItem('did_senha',s);
+  // Depois atualiza as variáveis globais
+  didEmail=e;
+  didSenha=s;
+  // Atualiza indicadores
   var dot=document.getElementById('did-dot');
   var st=document.getElementById('did-st');
   if(dot) dot.classList.add('on');
   if(st) st.textContent='Configurado';
-  document.getElementById('cfg-did-msg').textContent='Salvo';
-  setTimeout(function(){
-    document.getElementById('cfg-did-msg').textContent='';
-    toggleCfg(); // fecha painel após salvar
-  },1000);
+  var msg2=document.getElementById('cfg-did-msg');
+  if(msg2) msg2.textContent='Salvo com sucesso';
+  setTimeout(function(){ if(msg2) msg2.textContent=''; },1500);
 }
 
 function sincronizarDid(){
-  didEmail=(document.getElementById('cfg-did-email').value||'').trim();
-  didSenha=(document.getElementById('cfg-did-senha').value||'').trim();
+  // Não atualiza didEmail/didSenha aqui — só salvarDidCfg faz isso
 }
 
 function atualizarCfgDark(){
