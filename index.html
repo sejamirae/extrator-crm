@@ -171,13 +171,13 @@ body.dark #login-screen input::placeholder{color:#606060}
 .typing-dot:nth-child(2){animation-delay:.2s}
 .typing-dot:nth-child(3){animation-delay:.4s}
 @keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
-#chat-input-wrap{padding:12px 14px;border-top:1px solid #2e2e2e;display:flex;gap:8px;flex-shrink:0;background:#111}
-#chat-input{flex:1;background:#222;border:1px solid #333;border-radius:3px;color:#e0e0e0;font-family:'Inter',sans-serif;font-size:12px;padding:8px 11px;outline:none;resize:none;height:38px;line-height:1.4;transition:border-color .12s}
-#chat-input:focus{border-color:#013b47}
-#chat-input::placeholder{color:#444}
-#chat-send{background:#013b47;border:none;color:#fff;border-radius:3px;padding:0 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;height:38px;flex-shrink:0;transition:background .12s}
-#chat-send:hover{background:#01505f}
-#chat-send:disabled{opacity:.4;cursor:not-allowed}
+#chat-opts{padding:12px 14px;border-top:1px solid #2e2e2e;display:flex;flex-direction:column;gap:6px;flex-shrink:0;background:#111;overflow-y:auto;max-height:220px}
+#chat-opts::-webkit-scrollbar{width:3px}
+#chat-opts::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.chat-opt{background:#1a1a1a;border:1px solid #2e2e2e;border-left:2px solid #013b47;color:#c8c8c8;font-family:'Inter',sans-serif;font-size:11px;padding:8px 12px;border-radius:3px;cursor:pointer;text-align:left;transition:all .12s;line-height:1.4}
+.chat-opt:hover{background:#222;border-left-color:#c9a96e;color:#e0e0e0}
+.chat-opt-back{background:none;border:none;color:#555;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;padding:4px 0;text-align:left}
+.chat-opt-back:hover{color:#888}
 
 </style>
 </head>
@@ -343,10 +343,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <div id="chat-msgs">
       <div class="msg bot">Olá! Sou o assistente do Extrator CRM. Posso responder dúvidas sobre como usar a ferramenta, interpretar resultados, configurar o DoctorID ou qualquer outra questão. Como posso ajudar?</div>
     </div>
-    <div id="chat-input-wrap">
-      <textarea id="chat-input" placeholder="Digite sua dúvida..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarChat();}"></textarea>
-      <button id="chat-send" onclick="enviarChat()">Enviar</button>
-    </div>
+    <div id="chat-opts"></div>
   </div>
 </div>
 
@@ -1276,121 +1273,229 @@ fetch(API+'/').catch(function(){});
 // ── Painel lateral ─────────────────────────────────────────────────────────
 var _helpOpen = false;
 var _activeTab = 'manual';
-var _chatHistory = [];
 var _chatBusy = false;
-var _KB = [
-  {k:['senha','acesso','login','entrar','abrir','site'],
-   r:'A senha de acesso é fornecida pela equipe Mirae. Digite-a na tela inicial e pressione Entrar. A sessão permanece ativa enquanto a aba estiver aberta no navegador.'},
-  {k:['doctorid','doctor','telefone','celular','contato','email','e-mail','whatsapp','número','numero','fone'],
-   r:'Configure suas credenciais do DoctorID na seção correspondente do formulário (ponto colorido). Clique em Configurar, insira e-mail e senha da conta em doctorid.com.br e salve. Ponto verde = configurado, ponto cinza = pendente. As credenciais ficam salvas no navegador.'},
-  {k:['ponto','verde','cinza','configurado','credencial'],
-   r:'O ponto ao lado de DOCTORID indica o status: verde significa que as credenciais estão configuradas e prontas para buscar contatos, cinza significa que é necessário configurar antes de pesquisar.'},
-  {k:['sobrenome','nome','parcial','primeiro nome','buscar médico','buscar medico','pesquisar médico','pesquisar medico','encontrar médico'],
-   r:'Sim, você pode pesquisar por sobrenome ou nome parcial. Para melhores resultados com nome parcial, selecione primeiro a instituição — o sistema faz busca por parte do nome em caixa alta. O campo converte automaticamente para caixa alta enquanto você digita.'},
-  {k:['uf','estado','multiplo','múltiplo','selecionar','seleção','selecao','tag','etiqueta','adicionar','vários','varios'],
-   r:'Estado, Instituição e Programa aceitam múltiplas seleções. Digite parte do nome, clique no item para criar a etiqueta. Repita para mais itens. Clique no × na etiqueta para remover.'},
-  {k:['programa','especialidade','cardiologia','pediatria','cirurgia','clínica','clinica','medicina'],
-   r:'O campo Programa filtra por especialidade médica. Aceita múltiplas seleções — você pode combinar Pediatria e Cardiologia, por exemplo. Selecione a UF primeiro para carregar os programas disponíveis.'},
-  {k:['instituição','instituicao','hospital','faculdade','universidade','unifesp','usp','santa casa'],
-   r:'O campo Instituição aceita nome parcial e múltiplas seleções. Selecione a UF primeiro para carregar as instituições disponíveis. Você pode selecionar várias instituições simultaneamente.'},
-  {k:['pesquisar','pesquisa','busca','buscar','como usar','como funciona','como pesquiso','preencher','filtro','campo'],
-   r:'Preencha os filtros desejados e clique em Pesquisar. O sistema mostra o progresso em tempo real com porcentagem e tempo restante. Ao finalizar, o botão Exportar Planilha fica disponível. Você precisa preencher ao menos um campo.'},
-  {k:['demora','demorado','lento','devagar','tempo','espera','minuto','segundo','travou','carregando'],
-   r:'A primeira pesquisa do dia pode demorar porque o servidor está em repouso. Pesquisas com muitos programas em SP podem levar alguns minutos. O ícone da aba fica girando durante o processamento — você pode usar outras abas enquanto aguarda.'},
-  {k:['múltiplas formações','multiplas formacoes','mais de uma','duas formações','dois certificados','badge','ponto dourado','dourado','várias formações','varias formacoes','outra formação','outra formacao'],
-   r:'O ponto dourado ao lado do CRM indica médicos com mais de uma certificação. Clique no ponto para ver todas as formações detalhadas, com instituição, programa e datas de cada certificado.'},
-  {k:['xlsx','planilha','exportar','download','baixar','excel','arquivo','colunas','coluna'],
-   r:'O botão Exportar Planilha fica disponível quando todo o processamento termina (ícone da aba para de girar). A planilha inclui: Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações, Total Certificações, Telefone e E-mail. Os filtros ativos afetam o que é exportado.'},
-  {k:['sem telefone','ocultar','filtrar sem','não tem telefone','sem contato'],
-   r:'O filtro "Ocultar médicos sem telefone" exibe apenas quem tem contato encontrado no DoctorID. Fica disponível após a busca de contatos finalizar. Ative-o antes de exportar para ter apenas quem tem telefone na planilha.'},
-  {k:['outra instituição','outra instituicao','certificação recente','certificacao recente','mais recente','ativo','ainda na','atual'],
-   r:'O filtro "Ocultar médicos com certificação mais recente em outra instituição" remove médicos que já se formaram em outra instituição. Útil ao pesquisar por uma instituição específica para identificar quem ainda está vinculado a ela. Disponível após a verificação de múltiplas formações finalizar.'},
-  {k:['limpar','reiniciar','reset','nova pesquisa','começar','comecar','apagar','limpa'],
-   r:'O botão Limpar recarrega a página completamente, zerando todos os filtros, resultados e seleções. Use-o para iniciar uma pesquisa totalmente nova.'},
-  {k:['modo escuro','dark','escuro','tema','claro','visual','aparência','aparencia'],
-   r:'Clique em "Modo Escuro" no canto superior direito para alternar o tema. A preferência fica salva no navegador e é aplicada automaticamente nas próximas visitas.'},
-  {k:['favicon','ícone','icone','aba','girando','rodando','animação','animacao','parou'],
-   r:'O ícone na aba do navegador gira enquanto o sistema processa — busca de certificados, verificação de múltiplas formações e busca de contatos. Quando para de girar, tudo foi concluído e a planilha está pronta.'},
-  {k:['servidor','render','offline','conectar','conexão','conexao','erro','falha','não carregou','nao carregou'],
-   r:'O servidor pode estar em repouso após períodos sem uso — a mensagem "Conectando ao servidor" aparece por alguns segundos antes de iniciar. Se persistir, aguarde e tente novamente. O site acorda o servidor automaticamente ao ser aberto.'},
-  {k:['siscnrm','mec','ministério','ministerio','certificado','residência','residencia'],
-   r:'O sistema consulta o SisCNRM — cadastro nacional de residências médicas do Ministério da Educação. Os dados incluem instituição, programa, período da residência e certificado de cada médico.'},
-  {k:['crm','número de registro','registro','código','codigo'],
-   r:'Pesquise diretamente pelo CRM para encontrar todos os certificados de um médico específico. Se o resultado mostrar ponto dourado, o médico tem mais de uma formação — clique para ver todas.'},
-  {k:['período','periodo','data','início','inicio','fim','término','termino','emissão','emissao','quando'],
-   r:'O período de emissão filtra pela data em que o MEC emitiu o certificado. Início e Término indicam o período da residência em si. Você pode usar só a data de emissão, ou só o período, ou combinar os dois.'},
-  {k:['progresso','porcentagem','percentagem','%','quanto falta','tempo restante','estimativa'],
-   r:'Durante a busca, o sistema exibe a porcentagem concluída e uma estimativa de tempo restante calculada com base na velocidade real observada. A estimativa fica mais precisa conforme os lotes são processados.'},
-  {k:['não encontrou','nao encontrou','resultado vazio','zero resultados','sem resultados','nenhum'],
-   r:'Se não retornou resultados, verifique se os filtros estão corretos. Lembre que o nome precisa estar em caixa alta. Para busca por nome parcial, selecione a instituição primeiro. Tente ampliar o período de datas ou reduzir os filtros.'},
-  {k:['planilha errada','colunas erradas','faltou dado','dado faltando','telefone vazio','sem email','email vazio'],
-   r:'Telefone e e-mail ficam vazios quando o DoctorID não tem o cadastro daquele médico. As colunas Múltiplas Formações e Total Certificações só são preenchidas corretamente quando a verificação em background termina.'},
-  {k:['conta','mirae','quem','interno','equipe','time'],
-   r:'O Extrator CRM é uma ferramenta interna da Mirae. O acesso é restrito à equipe — a senha é fornecida internamente e não deve ser compartilhada com pessoas externas.'},
-];
 
-function _responder(msg) {
-  var q = msg.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // remove acentos
-    .replace(/[^a-z0-9\s]/g, ' ');
-
-  if (/^(oi|ola|bom dia|boa tarde|boa noite|hey|hello|hi|tudo|opa)\b/.test(q.trim())) {
-    return 'Olá! Sou o assistente do Extrator CRM. Posso responder dúvidas sobre como pesquisar certificados, configurar o DoctorID, usar filtros, exportar planilhas e muito mais. O que você precisa saber?';
-  }
-  if (/obrigad|valeu|thanks|ok|entendi|perfeito|otimo|ótimo/.test(q)) {
-    return 'Fico feliz em ajudar! Se tiver mais alguma dúvida sobre o Extrator CRM, é só perguntar.';
-  }
-
-  // Pontua cada entrada da KB
-  var melhor = null, melhorPontos = 0;
-  for (var i = 0; i < _KB.length; i++) {
-    var pontos = 0;
-    var palavras = _KB[i].k;
-    for (var j = 0; j < palavras.length; j++) {
-      var kw = palavras[j].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (q.indexOf(kw) >= 0) pontos += kw.split(' ').length; // peso por nº de palavras
+// ── Árvore de perguntas ───────────────────────────────────────────────────────
+var _MENU = {
+  id: 'root',
+  msg: 'Olá! Sou o assistente do Extrator CRM. Sobre o que você tem dúvidas?',
+  opts: [
+    {
+      label: 'Como acessar o sistema',
+      msg: 'O Extrator CRM está em sejamirae.github.io/extrator-crm. A senha de acesso é fornecida pela equipe Mirae. Digite-a na tela inicial e pressione Entrar. A sessão permanece ativa enquanto a aba estiver aberta.',
+      opts: []
+    },
+    {
+      label: 'Como pesquisar certificados',
+      msg: 'Preencha os filtros desejados e clique em Pesquisar. O que você quer saber sobre a pesquisa?',
+      opts: [
+        {
+          label: 'Pesquisar por nome ou sobrenome',
+          msg: 'Sim. O campo Nome aceita nome parcial e converte automaticamente para caixa alta. Para melhores resultados com nome parcial, selecione a instituição primeiro. Você pode pesquisar só pelo sobrenome — o sistema faz busca por trecho do nome.',
+          opts: []
+        },
+        {
+          label: 'Selecionar múltiplos estados, instituições ou programas',
+          msg: 'Estado, Instituição e Programa aceitam múltiplas seleções. Digite parte do nome, clique no item para criar a etiqueta. Repita para adicionar mais. Clique no × para remover uma etiqueta.',
+          opts: []
+        },
+        {
+          label: 'Filtrar por período de emissão',
+          msg: 'Preencha os campos Emissão — Início e Emissão — Fim com o período desejado. Início e Término se referem ao período da residência médica. Emissão é a data em que o MEC emitiu o certificado.',
+          opts: []
+        },
+        {
+          label: 'Pesquisar por CRM',
+          msg: 'Digite o número do CRM no campo correspondente. O sistema retorna todos os certificados daquele médico. Se houver ponto dourado ao lado do CRM, clique para ver todas as formações.',
+          opts: []
+        },
+        {
+          label: 'Pesquisa demorou ou não carregou',
+          msg: 'A primeira pesquisa do dia pode demorar porque o servidor está em repouso. Pesquisas com muitos programas em SP podem levar alguns minutos. O ícone da aba fica girando durante o processamento — você pode usar outras abas enquanto aguarda.',
+          opts: []
+        }
+      ]
+    },
+    {
+      label: 'Configurar o DoctorID',
+      msg: 'O DoctorID fornece telefone e e-mail dos médicos. O que você precisa saber?',
+      opts: [
+        {
+          label: 'Como configurar',
+          msg: 'Localize a seção DoctorID no formulário (ponto colorido). Clique em Configurar, insira e-mail e senha da sua conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador para as próximas visitas.',
+          opts: []
+        },
+        {
+          label: 'Ponto verde ou cinza — o que significa',
+          msg: 'Ponto verde = credenciais configuradas e prontas para buscar contatos. Ponto cinza = necessário configurar antes de pesquisar para obter telefone e e-mail.',
+          opts: []
+        },
+        {
+          label: 'Por que alguns médicos não têm telefone',
+          msg: 'O telefone fica vazio quando o DoctorID não tem o cadastro daquele médico. Nem todos os médicos estão cadastrados na plataforma — isso é normal.',
+          opts: []
+        }
+      ]
+    },
+    {
+      label: 'Entender os resultados',
+      msg: 'O que você quer entender sobre os resultados?',
+      opts: [
+        {
+          label: 'O que significa o ponto dourado no CRM',
+          msg: 'O ponto dourado indica que o médico tem mais de uma certificação no SisCNRM. Clique no ponto para ver todas as formações detalhadas — instituição, programa, período e número de cada certificado.',
+          opts: []
+        },
+        {
+          label: 'O que são os contadores (Certificados, Múltiplos, Contatos)',
+          msg: 'Certificados = total de registros encontrados. Múltiplos Certificados = médicos com mais de uma formação. Contatos = médicos com telefone ou e-mail encontrado no DoctorID. Os contadores atualizam em tempo real durante o processamento.',
+          opts: []
+        },
+        {
+          label: 'Diferença entre Início, Término e Emissão',
+          msg: 'Início e Término são as datas de duração da residência médica. Emissão é a data em que o Ministério da Educação emitiu o certificado — geralmente alguns dias ou meses após o Término.',
+          opts: []
+        },
+        {
+          label: 'O que significa o ícone girando na aba',
+          msg: 'O ícone gira enquanto o sistema processa — busca de certificados, verificação de múltiplas formações e busca de contatos. Quando para, tudo foi concluído e a planilha está pronta para exportar.',
+          opts: []
+        }
+      ]
+    },
+    {
+      label: 'Filtros e exportação',
+      msg: 'Sobre o que você quer saber?',
+      opts: [
+        {
+          label: 'Como exportar a planilha',
+          msg: 'O botão Exportar Planilha fica disponível quando todo o processamento termina (ícone da aba para de girar). A planilha inclui: Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações, Total Certificações, Telefone e E-mail.',
+          opts: []
+        },
+        {
+          label: 'Ocultar médicos sem telefone',
+          msg: 'Ative o filtro "Ocultar médicos sem telefone" para exibir apenas quem tem contato encontrado. Disponível após a busca de contatos finalizar. Ative antes de exportar para ter só quem tem telefone na planilha.',
+          opts: []
+        },
+        {
+          label: 'Ocultar médicos com certificação em outra instituição',
+          msg: 'O filtro "Ocultar médicos com certificação mais recente em outra instituição" remove quem já se formou em outra instituição. Útil ao pesquisar por uma instituição específica. Disponível após a verificação de múltiplas formações finalizar.',
+          opts: []
+        },
+        {
+          label: 'Os filtros afetam a planilha',
+          msg: 'Sim. Os filtros ativos no momento da exportação determinam quais linhas aparecem na planilha. Ative os filtros desejados antes de clicar em Exportar Planilha.',
+          opts: []
+        }
+      ]
+    },
+    {
+      label: 'Outras funcionalidades',
+      msg: 'O que você quer saber?',
+      opts: [
+        {
+          label: 'Modo escuro',
+          msg: 'Clique em "Modo Escuro" no canto superior direito para alternar o tema. A preferência fica salva no navegador e é aplicada automaticamente nas próximas visitas.',
+          opts: []
+        },
+        {
+          label: 'Botão Limpar',
+          msg: 'O botão Limpar recarrega a página completamente, zerando todos os filtros, resultados e seleções. Use-o para iniciar uma pesquisa totalmente nova.',
+          opts: []
+        },
+        {
+          label: 'Nenhum resultado encontrado',
+          msg: 'Se não retornou resultados, verifique os filtros. O nome precisa estar em caixa alta (o campo faz isso automaticamente). Para nome parcial, selecione a instituição primeiro. Tente ampliar o período de datas ou reduzir os filtros aplicados.',
+          opts: []
+        }
+      ]
     }
-    if (pontos > melhorPontos) { melhorPontos = pontos; melhor = _KB[i].r; }
-  }
-  if (melhorPontos > 0) return melhor;
+  ]
+};
 
-  return 'Não encontrei uma resposta para isso. Tente reformular a pergunta ou pergunte sobre: pesquisa por nome, CRM ou sobrenome, configuração do DoctorID, exportar planilha, filtros, múltiplas formações, período de emissão, ou desempenho da ferramenta.';
-}
+var _navStack = [_MENU];
 
-async function enviarChat() {
-  if (_chatBusy) return;
-  var input = document.getElementById('chat-input');
-  var msg = input.value.trim();
-  if (!msg) return;
-  input.value = '';
-  _chatBusy = true;
-  document.getElementById('chat-send').disabled = true;
-
+function _renderChat() {
+  var node = _navStack[_navStack.length - 1];
   var msgsEl = document.getElementById('chat-msgs');
-  var userEl = document.createElement('div');
-  userEl.className = 'msg usr';
-  userEl.textContent = msg;
-  msgsEl.appendChild(userEl);
+  var optsEl = document.getElementById('chat-opts');
 
-  var typEl = document.createElement('div');
-  typEl.className = 'msg-typing';
-  typEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
-  msgsEl.appendChild(typEl);
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-
-  await new Promise(function(r){ setTimeout(r, 400 + Math.random()*400); });
-  typEl.remove();
-
-  var reply = _responder(msg);
+  // Adiciona a mensagem do nó
   var botEl = document.createElement('div');
   botEl.className = 'msg bot';
-  botEl.textContent = reply;
+  botEl.textContent = node.msg;
   msgsEl.appendChild(botEl);
   msgsEl.scrollTop = msgsEl.scrollHeight;
 
-  _chatBusy = false;
-  document.getElementById('chat-send').disabled = false;
-  input.focus();
+  // Renderiza opções
+  optsEl.innerHTML = '';
+
+  if (_navStack.length > 1) {
+    var back = document.createElement('button');
+    back.className = 'chat-opt-back';
+    back.textContent = '← Voltar';
+    back.onclick = function() { _navStack.pop(); _renderChat(); };
+    optsEl.appendChild(back);
+  }
+
+  if (node.opts && node.opts.length > 0) {
+    node.opts.forEach(function(opt, i) {
+      var btn = document.createElement('button');
+      btn.className = 'chat-opt';
+      btn.textContent = opt.label;
+      btn.onclick = function() {
+        // Adiciona a pergunta como mensagem do usuário
+        var userEl = document.createElement('div');
+        userEl.className = 'msg usr';
+        userEl.textContent = opt.label;
+        msgsEl.appendChild(userEl);
+
+        if (opt.opts && opt.opts.length > 0) {
+          _navStack.push(opt);
+          setTimeout(_renderChat, 300);
+        } else {
+          // Resposta final
+          setTimeout(function() {
+            var botEl = document.createElement('div');
+            botEl.className = 'msg bot';
+            botEl.textContent = opt.msg;
+            msgsEl.appendChild(botEl);
+            msgsEl.scrollTop = msgsEl.scrollHeight;
+
+            // Mostra botão de voltar ao menu
+            optsEl.innerHTML = '';
+            var backBtn = document.createElement('button');
+            backBtn.className = 'chat-opt-back';
+            backBtn.textContent = '← Voltar ao menu';
+            backBtn.onclick = function() { _navStack = [_MENU]; _renderChat(); };
+            var maisBtn = document.createElement('button');
+            maisBtn.className = 'chat-opt';
+            maisBtn.textContent = 'Tenho mais dúvidas';
+            maisBtn.onclick = function() {
+              _navStack = [_MENU];
+              _renderChat();
+            };
+            optsEl.appendChild(backBtn);
+            optsEl.appendChild(maisBtn);
+          }, 300);
+        }
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      };
+      optsEl.appendChild(btn);
+    });
+  }
 }
+
+// Inicializa o chat quando a aba é aberta
+function _initChat() {
+  var msgsEl = document.getElementById('chat-msgs');
+  if (msgsEl.children.length <= 1) {
+    _navStack = [_MENU];
+    _renderChat();
+  }
+}
+
+// Função legada mantida para compatibilidade
+function enviarChat() {}
 
 >
