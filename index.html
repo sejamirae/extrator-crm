@@ -128,12 +128,17 @@ body.dark #login-screen input::placeholder{color:#606060}
 /* ── Painel lateral ─────────────────────────────────────────────── */
 #help-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;transition:opacity .2s}
 #help-overlay.open{display:block}
-#help-panel{position:fixed;top:0;right:0;bottom:0;width:420px;max-width:95vw;background:#1a1a1a;border-left:1px solid #2e2e2e;z-index:301;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1)}
-#help-panel.open{transform:translateX(0)}
-.hp-header{background:#013b47;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2e2e2e;flex-shrink:0}
-.hp-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:-.1px}
-.hp-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:18px;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:color .15s}
-.hp-close:hover{color:#fff}
+#help-panel{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:95vw;background:#1a1a1a;border-left:1px solid #2a2a2a;z-index:301;display:flex;flex-direction:column;transform:translateX(100%) scale(.98);opacity:0;transition:transform .28s cubic-bezier(.32,.72,0,1),opacity .2s ease;box-shadow:-8px 0 32px rgba(0,0,0,.4)}
+#help-panel.open{transform:translateX(0) scale(1);opacity:1}
+.hp-header{background:#013b47;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.hp-avatar{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 0 0 2px rgba(201,169,110,.4)}
+.hp-avatar svg{width:40px;height:40px}
+.hp-info{flex:1;min-width:0}
+.hp-name{font-size:13px;font-weight:600;color:#fff;letter-spacing:-.1px;line-height:1.2}
+.hp-status{font-size:10px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;margin-top:2px}
+.hp-status-dot{width:5px;height:5px;border-radius:50%;background:#4aaa6a;flex-shrink:0}
+.hp-close{background:none;border:none;color:rgba(255,255,255,.45);cursor:pointer;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:all .15s;flex-shrink:0}
+.hp-close:hover{color:#fff;background:rgba(255,255,255,.08)}
 
 /* Manual */
 #tab-manual{flex:1;overflow-y:auto;padding:20px 20px 16px;display:none}
@@ -158,7 +163,6 @@ body.dark #login-screen input::placeholder{color:#606060}
 #chat-msgs::-webkit-scrollbar{width:4px}
 #chat-msgs::-webkit-scrollbar-track{background:#111}
 #chat-msgs::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-.msg{max-width:88%;font-size:12px;line-height:1.6;padding:9px 12px;border-radius:3px}
 .msg.usr{align-self:flex-end;background:#013b47;color:#e0e0e0;border-radius:3px 3px 0 3px}
 .msg.bot{align-self:flex-start;background:#222;color:#ccc;border-radius:3px 3px 3px 0;border-left:2px solid #c9a96e}
 .msg.bot b{color:#e0e0e0}
@@ -170,8 +174,11 @@ body.dark #login-screen input::placeholder{color:#606060}
 #chat-opts{padding:12px 14px;border-top:1px solid #2e2e2e;display:flex;flex-direction:column;gap:6px;flex-shrink:0;background:#111;overflow-y:auto;max-height:220px}
 #chat-opts::-webkit-scrollbar{width:3px}
 #chat-opts::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-.chat-opt{background:#1a1a1a;border:1px solid #2e2e2e;border-left:2px solid #013b47;color:#c8c8c8;font-family:'Inter',sans-serif;font-size:11px;padding:8px 12px;border-radius:3px;cursor:pointer;text-align:left;transition:all .12s;line-height:1.4}
-.chat-opt:hover{background:#222;border-left-color:#c9a96e;color:#e0e0e0}
+.chat-opt{background:#1a1a1a;border:1px solid #2e2e2e;border-left:2px solid #013b47;color:#c8c8c8;font-family:'Inter',sans-serif;font-size:11px;padding:8px 12px;border-radius:3px;cursor:pointer;text-align:left;transition:all .15s;line-height:1.4;transform:translateY(0)}
+.chat-opt:hover{background:#222;border-left-color:#c9a96e;color:#e0e0e0;transform:translateX(2px)}
+.chat-opt:active{transform:scale(.98);opacity:.7}
+.msg{max-width:88%;font-size:12px;line-height:1.6;padding:9px 12px;border-radius:3px;animation:msg-in .2s ease}
+@keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .chat-opt-back{background:none;border:none;color:#555;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;padding:4px 0;text-align:left}
 .chat-opt-back:hover{color:#888}
 
@@ -289,8 +296,26 @@ body.dark #login-screen input::placeholder{color:#606060}
 <div id="help-overlay" onclick="toggleHelp()"></div>
 <div id="help-panel">
   <div class="hp-header">
-    <span class="hp-title">Extrator CRM — Ajuda</span>
-    <button class="hp-close" onclick="toggleHelp()">&#215;</button>
+    <div class="hp-avatar">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <!-- Fundo teal -->
+        <rect width="40" height="40" rx="20" fill="#013b47"/>
+        <!-- Letra M estilizada -->
+        <text x="20" y="26" text-anchor="middle" font-family="Georgia,serif" font-size="18" font-weight="700" fill="white">M</text>
+        <!-- Ponto dourado -->
+        <circle cx="28" cy="25" r="3" fill="#c9a96e"/>
+      </svg>
+    </div>
+    <div class="hp-info">
+      <div class="hp-name">Assistente Extrator CRM</div>
+      <div class="hp-status"><span class="hp-status-dot"></span>online</div>
+    </div>
+    <button class="hp-close" onclick="toggleHelp()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <line x1="1" y1="1" x2="13" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="13" y1="1" x2="1" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 
 
@@ -1451,18 +1476,23 @@ function setTab(tab) {
   }
 }
 
+function _scrollBottom() {
+  var msgsEl = document.getElementById('chat-msgs');
+  msgsEl.scrollTo({top: msgsEl.scrollHeight, behavior: 'smooth'});
+}
+
 function _typing(callback) {
   var msgsEl = document.getElementById('chat-msgs');
   var typEl = document.createElement('div');
   typEl.className = 'msg-typing';
   typEl.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
   msgsEl.appendChild(typEl);
-  msgsEl.scrollTop = msgsEl.scrollHeight;
+  _scrollBottom();
   setTimeout(function() {
     typEl.remove();
     callback();
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  }, 600 + Math.random()*400);
+    _scrollBottom();
+  }, 500 + Math.random()*300);
 }
 
 function _typeMsg(text, callback) {
@@ -1475,7 +1505,7 @@ function _typeMsg(text, callback) {
   function tick() {
     if (i < text.length) {
       el.textContent += text[i++];
-      msgsEl.scrollTop = msgsEl.scrollHeight;
+      _scrollBottom();
       setTimeout(tick, speed);
     } else {
       if (callback) callback();
@@ -1542,6 +1572,15 @@ function _renderOpts(node) {
           });
         }
       };
+      btn.style.opacity = '0';
+      btn.style.transform = 'translateY(6px)';
+      (function(b, delay) {
+        setTimeout(function() {
+          b.style.transition = 'opacity .18s ease, transform .18s ease';
+          b.style.opacity = '1';
+          b.style.transform = 'translateY(0)';
+        }, delay);
+      })(btn, i * 60);
       optsEl.appendChild(btn);
     });
   }
