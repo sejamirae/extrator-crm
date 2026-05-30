@@ -37,7 +37,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 .cfg-hdr-wrap{position:relative}
 .cfg-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:Inter,sans-serif;font-size:12px;padding:8px 11px;outline:none;box-sizing:border-box;transition:border-color .12s}
 .cfg-input:focus{border-color:var(--teal)}
+.cfg-input:-webkit-autofill,.cfg-input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--surface) inset!important;-webkit-text-fill-color:var(--text)!important}
 body.dark .cfg-input{background:#2a2a2a;color:#e8e8e8}
+body.dark .cfg-input:-webkit-autofill,.dark .cfg-input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #2a2a2a inset!important;-webkit-text-fill-color:#e8e8e8!important}
 #btn-manual{background:none;border:1px solid rgba(201,169,110,.45);color:rgba(201,169,110,.85);font-family:'Inter',sans-serif;font-size:11px;padding:5px 10px;border-radius:var(--r);cursor:pointer;letter-spacing:.2px;margin-left:8px;animation:manual-pulse 3s ease-in-out infinite;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 #btn-manual:hover{border-color:var(--gold);color:var(--gold);animation:none}
 @keyframes manual-pulse{0%,100%{border-color:rgba(201,169,110,.45);color:rgba(201,169,110,.85);box-shadow:none}50%{border-color:rgba(201,169,110,.9);color:rgba(201,169,110,1);box-shadow:0 0 8px rgba(201,169,110,.25)}}
@@ -230,7 +232,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 <div class="cfg-item-label">DoctorID</div>
 <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
   <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Email</label>
-  <input type="email" id="cfg-did-email" placeholder="email@exemplo.com" class="cfg-input" oninput="sincronizarDid()">
+  <input type="text" inputmode="email" autocomplete="off" id="cfg-did-email" placeholder="email@exemplo.com" class="cfg-input">
 </div>
 <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
   <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Senha</label>
@@ -1498,11 +1500,6 @@ var _MENU = {
       label: 'Configurar o DoctorID',
       msg: 'Clique em Configurações no canto superior direito do cabeçalho. Insira seu e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador.',
       opts: [
-        {
-          label: 'Como configurar',
-          msg: 'Clique em Configurações no canto superior direito do cabeçalho. Insira e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador.',
-          opts: []
-        },
         {
           label: 'Ponto verde ou cinza — o que significa',
           msg: 'Ponto verde = credenciais configuradas e prontas para buscar contatos. Ponto cinza = necessário configurar antes de pesquisar para obter telefone e e-mail.',
