@@ -1410,130 +1410,131 @@ var _chatBusy = false;
 // ── Árvore de perguntas ───────────────────────────────────────────────────────
 var _MENU = {
   id: 'root',
-  msg: 'Olá! Sou o assistente do Extrator CRM. Como posso ajudar?',
-  opts: [
+  msg: 'Olá! Sou o assistente do Extrator CRM. Como posso te ajudar?',
+  opts: [
     {
-      label: 'Primeiro acesso',
-      msg: 'Perfeito! Vou te guiar. O que você quer fazer?',
+      label: 'Quero fazer minha primeira pesquisa',
+      msg: 'Ótimo! Por onde você quer começar?',
       opts: [
         {
-          label: 'Pesquisar médicos de uma especialidade',
-          msg: 'Selecione o Estado (UF) no formulário — isso carrega as instituições e programas. Depois vá ao campo Programa, digite a especialidade (ex: PEDIATRIA) e clique no item. Clique em Pesquisar. O sistema busca em todas as instituições daquele estado.',
+          label: 'Pesquisar por especialidade (programa)',
+          msg: 'Selecione pelo menos um Estado (UF) no formulário — isso carrega as instituições e programas daquele estado. Em seguida, vá ao campo Programa, comece a digitar o nome da especialidade (ex: PEDIATRIA) e clique no item para adicioná-la. Depois clique em Pesquisar.',
           opts: [
-            {label:'E o telefone dos médicos, como obter?', msg:'Clique em Configurações no canto superior direito do cabeçalho, insira e-mail e senha do DoctorID e clique em Salvar. Após pesquisar, o sistema busca os contatos automaticamente.', opts:[]},
-            {label:'Como exportar os resultados?', msg:'Aguarde o ícone da aba parar de girar — indica que tudo foi processado. O botão Exportar Planilha ficará disponível. A planilha inclui telefone e e-mail se o DoctorID estiver configurado.', opts:[]}
+            {
+              label: 'Posso selecionar mais de uma especialidade?',
+              msg: 'Sim. Adicione quantas especialidades quiser no campo Programa — cada clique cria uma etiqueta. Você também pode combinar vários estados e instituições. Os resultados de todas as combinações são exibidos juntos.',
+              opts: [
+                {label:'Pesquisas grandes demoram muito?', msg:'Podem levar alguns minutos dependendo da quantidade de combinações. A tela mostra a porcentagem concluída e o tempo estimado. Você pode usar outras abas enquanto aguarda — a pesquisa continua em segundo plano.', opts:[]}
+              ]
+            },
+            {
+              label: 'Como obter o telefone dos médicos?',
+              msg: 'Configure o DoctorID antes de pesquisar: clique no botão Configurações no cabeçalho (canto superior direito), insira e-mail e senha da sua conta DoctorID e clique em Salvar. Após pesquisar, os contatos são buscados automaticamente em segundo plano.',
+              opts: [
+                {label:'O que é o DoctorID?', msg:'É uma plataforma com dados de contato de médicos brasileiros. O Extrator CRM usa suas credenciais para buscar telefone e e-mail automaticamente após cada pesquisa. Você precisa ter uma conta ativa no DoctorID.', opts:[]},
+                {label:'O indicador DoctorID ficou verde mas sem telefone', msg:'O ponto verde indica que as credenciais estão salvas. Se um médico não tem telefone, o DoctorID simplesmente não possui cadastro daquele profissional — isso é normal e acontece com parte dos médicos.', opts:[]}
+              ]
+            },
+            {
+              label: 'Como exportar os resultados?',
+              msg: 'Aguarde o ícone de carregamento da aba do navegador parar de girar — isso indica que o processamento foi concluído. Em seguida, o botão Exportar Planilha ficará habilitado. A planilha inclui telefone e e-mail se o DoctorID estiver configurado.',
+              opts: [
+                {label:'O que vem na planilha?', msg:'A planilha inclui: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão do Certificado, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone e E-mail.', opts:[]}
+              ]
+            }
           ]
         },
         {
-          label: 'Pesquisar várias especialidades juntas',
-          msg: 'No campo Programa, adicione cada especialidade uma por uma clicando no item para criar etiquetas. Ao pesquisar, o sistema combina os resultados de todas as especialidades selecionadas. Você também pode combinar vários estados e instituições.',
+          label: 'Pesquisar um médico pelo nome ou CRM',
+          msg: 'Você pode pesquisar por nome completo, sobrenome ou número do CRM.',
           opts: [
-            {label:'Pesquisas grandes demoram muito?', msg:'Podem levar alguns minutos, sim. O ícone da aba fica girando enquanto processa e a tela mostra a porcentagem e o tempo restante estimado. Você pode usar outras abas enquanto aguarda — a pesquisa continua em segundo plano.', opts:[]}
+            {
+              label: 'Tenho o número do CRM',
+              msg: 'Digite o número no campo CRM e clique em Pesquisar. O sistema retorna todos os certificados daquele médico, de qualquer instituição. Se aparecer um ponto dourado ao lado do CRM, clique nele para ver todas as formações detalhadas.',
+              opts: []
+            },
+            {
+              label: 'Tenho o nome ou sobrenome',
+              msg: 'Digite no campo Nome — o sistema aceita parte do nome e converte automaticamente para caixa alta. Para melhores resultados com nome parcial, selecione também a UF ou a instituição antes de pesquisar.',
+              opts: [
+                {label:'Por que preciso selecionar a UF para buscar por nome?', msg:'Sem ao menos uma UF selecionada, a busca seria em toda a base nacional, o que pode ser muito lento ou trazer muitos resultados imprecisos. Com a UF, a busca é mais rápida e precisa.', opts:[]}
+              ]
+            }
           ]
         },
         {
-          label: 'Pesquisar por período de emissão',
-          msg: 'Preencha Emissão — Início e Emissão — Fim. Combine com UF, programa ou instituição para refinar. Por exemplo: todos os certificados de Pediatria em SP emitidos em 2025.',
+          label: 'Pesquisar por período de emissão do certificado',
+          msg: 'Preencha os campos Emissão — Início e Emissão — Fim com o intervalo desejado. Combine com UF, programa ou instituição para refinar. Exemplo: todos os certificados de Cardiologia em MG emitidos em 2024.',
           opts: [
-            {label:'Qual a diferença entre Emissão e Início/Término?', msg:'Início e Término são as datas da residência médica. Emissão é quando o MEC emitiu o certificado — geralmente alguns dias ou meses após o Término. Use o filtro de Emissão para buscar certificados recentes.', opts:[]}
-          ]
-        },
-        {
-          label: 'Pesquisar um médico específico (nome ou CRM)',
-          msg: 'Você pode pesquisar por nome, sobrenome ou CRM. Para nome parcial, selecione a instituição primeiro. O campo converte automaticamente para caixa alta.',
-          opts: [
-            {label:'Tenho o CRM', msg:'Digite o número no campo CRM e clique em Pesquisar. O sistema retorna todos os certificados daquele médico. Ponto dourado ao lado do CRM indica mais de uma formação — clique para ver todas.', opts:[]},
-            {label:'Tenho o nome ou sobrenome', msg:'Digite no campo Nome. Aceita nome parcial e converte para caixa alta automaticamente. Para melhores resultados, selecione também a instituição ou combine com UF e período.', opts:[]}
-          ]
-        },
-        {
-          label: 'Quero só médicos com telefone na planilha',
-          msg: 'Clique em Configurações no canto superior direito e insira seu e-mail e senha do DoctorID e clique em Salvar. Após a pesquisa, aguarde os contatos, ative o filtro "Ocultar médicos sem telefone" e clique em Exportar Planilha.',
-          opts: [
-            {label:'O que vem na planilha exportada?', msg:'A planilha inclui: Número do Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações (SIM/NÃO), Total de Certificações, Telefone e E-mail.', opts:[]}
+            {
+              label: 'Qual a diferença entre Emissão, Início e Término?',
+              msg: 'Início e Término são as datas do período da residência médica (quando o médico frequentou o programa). Emissão é a data em que o Ministério da Educação emitiu o certificado de conclusão — normalmente dias a meses após o Término.',
+              opts: []
+            }
           ]
         },
         {
           label: 'Quero médicos ativos em uma instituição específica',
-          msg: 'Selecione a instituição no campo correspondente e pesquise. Após o resultado, ative o filtro "Ocultar médicos com certificação mais recente em outra instituição". Isso remove quem já tem formação mais recente em outro lugar.',
-          opts: []
-        }
-      ]
-    },
-    {
-      label: 'Como acessar o sistema',
-      msg: 'O Extrator CRM está em sejamirae.github.io/extrator-crm. A senha de acesso é fornecida pela equipe Mirae. Digite-a na tela inicial e pressione Entrar. A sessão permanece ativa enquanto a aba estiver aberta.',
-      opts: []
-    },
-    {
-      label: 'Como pesquisar certificados',
-      msg: 'Preencha os filtros desejados e clique em Pesquisar. O que você quer saber sobre a pesquisa?',
-      opts: [
-        {
-          label: 'Pesquisar por nome ou sobrenome',
-          msg: 'Sim. O campo Nome aceita nome parcial e converte automaticamente para caixa alta. Para melhores resultados com nome parcial, selecione a instituição primeiro. Você pode pesquisar só pelo sobrenome — o sistema faz busca por trecho do nome.',
-          opts: []
+          msg: 'Selecione a UF e depois a instituição no campo correspondente. Após a pesquisa, ative o filtro "Ocultar médicos com certificação mais recente em outra instituição". Isso remove médicos que já têm uma formação mais recente em outro lugar.',
+          opts: [
+            {label:'Quando esse filtro fica disponível?', msg:'Ele aparece quando você pesquisa por uma única instituição específica e o sistema termina de verificar as múltiplas formações. Só é exibido nessa situação específica.', opts:[]}
+          ]
         },
         {
-          label: 'Selecionar múltiplos estados, instituições ou programas',
-          msg: 'Estado, Instituição e Programa aceitam múltiplas seleções. Digite parte do nome, clique no item para criar a etiqueta. Repita para adicionar mais. Clique no × para remover uma etiqueta.',
-          opts: []
-        },
-        {
-          label: 'Filtrar por período de emissão',
-          msg: 'Preencha os campos Emissão — Início e Emissão — Fim com o período desejado. Início e Término se referem ao período da residência médica. Emissão é a data em que o MEC emitiu o certificado.',
-          opts: []
-        },
-        {
-          label: 'Pesquisar por CRM',
-          msg: 'Digite o número do CRM no campo correspondente. O sistema retorna todos os certificados daquele médico. Se houver ponto dourado ao lado do CRM, clique para ver todas as formações.',
-          opts: []
-        },
-        {
-          label: 'Pesquisa demorou ou não carregou',
-          msg: 'A primeira pesquisa do dia pode demorar porque o servidor está em repouso. Pesquisas com muitos programas em SP podem levar alguns minutos. O ícone da aba fica girando durante o processamento — você pode usar outras abas enquanto aguarda.',
+          label: 'Quero só médicos com telefone na planilha',
+          msg: 'Configure o DoctorID em Configurações (cabeçalho), faça a pesquisa normalmente e aguarde os contatos serem carregados. Depois ative o filtro "Ocultar médicos sem telefone" — a tabela e a planilha exportada mostrarão apenas quem tem contato.',
           opts: []
         }
       ]
     },
     {
       label: 'Configurar o DoctorID',
-      msg: 'Clique em Configurações no canto superior direito do cabeçalho. Insira seu e-mail e senha da conta em doctorid.com.br e clique em Salvar. As credenciais ficam salvas no navegador.',
+      msg: 'Clique no botão Configurações no cabeçalho (canto superior direito da página). Na seção DoctorID, insira e-mail e senha da sua conta e clique em Salvar. As credenciais ficam armazenadas no navegador — você não precisa inserir novamente nas próximas visitas.',
       opts: [
         {
-          label: 'Ponto verde ou cinza — o que significa',
-          msg: 'Ponto verde = credenciais configuradas e prontas para buscar contatos. Ponto cinza = necessário configurar antes de pesquisar para obter telefone e e-mail.',
+          label: 'O que significa o indicador DoctorID na tela?',
+          msg: 'O ponto pequeno ao lado de "DoctorID" no formulário indica o status: verde = credenciais salvas e prontas para buscar contatos após a pesquisa. Cinza = sem credenciais configuradas, o sistema não buscará telefone nem e-mail.',
           opts: []
         },
         {
-          label: 'Por que alguns médicos não têm telefone',
-          msg: 'O telefone fica vazio quando o DoctorID não tem o cadastro daquele médico. Nem todos os médicos estão cadastrados na plataforma — isso é normal.',
+          label: 'Por que alguns médicos não têm telefone?',
+          msg: 'O telefone fica em branco quando o DoctorID não possui cadastro daquele médico. Nem todos os médicos estão na plataforma — isso é esperado e varia por especialidade e região.',
+          opts: []
+        },
+        {
+          label: 'As credenciais ficam seguras?',
+          msg: 'As credenciais ficam salvas apenas no armazenamento local do seu navegador e são usadas somente para consultar o DoctorID em seu nome. Nenhuma outra pessoa com acesso a outro navegador poderá vê-las.',
           opts: []
         }
       ]
     },
     {
       label: 'Entender os resultados',
-      msg: 'O que você quer entender sobre os resultados?',
+      msg: 'O que você quer entender?',
       opts: [
         {
-          label: 'O que significa o ponto dourado no CRM',
-          msg: 'O ponto dourado indica que o médico tem mais de uma certificação no SisCNRM. Clique no ponto para ver todas as formações detalhadas — instituição, programa, período e número de cada certificado.',
+          label: 'O que é o ponto dourado ao lado do CRM?',
+          msg: 'O ponto dourado indica que aquele médico tem mais de uma certificação registrada no SisCNRM. Clique no ponto para abrir um painel com todas as formações detalhadas — instituição, programa, datas de início e término, número e data de emissão de cada certificado.',
           opts: []
         },
         {
-          label: 'O que são os contadores (Certificados, Múltiplos, Contatos)',
-          msg: 'Certificados = total de registros encontrados. Múltiplos Certificados = médicos com mais de uma formação. Contatos = médicos com telefone ou e-mail encontrado no DoctorID. Os contadores atualizam em tempo real durante o processamento.',
+          label: 'O que são os contadores no topo dos resultados?',
+          msg: 'Certificados = total de registros retornados. Múlt. Cert. = médicos com mais de uma formação. Contatos = médicos com telefone ou e-mail encontrado no DoctorID. Os três contadores atualizam em tempo real enquanto o sistema processa.',
           opts: []
         },
         {
-          label: 'Diferença entre Início, Término e Emissão',
-          msg: 'Início e Término são as datas de duração da residência médica. Emissão é a data em que o Ministério da Educação emitiu o certificado — geralmente alguns dias ou meses após o Término.',
+          label: 'O que significa o ícone girando na aba do navegador?',
+          msg: 'O ícone gira enquanto o sistema executa tarefas em segundo plano: busca de certificados, verificação de múltiplas formações e busca de contatos. Quando para, tudo foi concluído e o botão Exportar Planilha fica disponível.',
           opts: []
         },
         {
-          label: 'O que significa o ícone girando na aba',
-          msg: 'O ícone gira enquanto o sistema processa — busca de certificados, verificação de múltiplas formações e busca de contatos. Quando para, tudo foi concluído e a planilha está pronta para exportar.',
+          label: 'Por que o resultado trouxe médicos de outras UFs?',
+          msg: 'Se você não selecionou uma UF específica, a busca é feita em toda a base nacional. Para restringir ao estado desejado, selecione a UF antes de pesquisar. Você pode selecionar múltiplas UFs clicando na lista uma por vez.',
+          opts: []
+        },
+        {
+          label: 'Diferença entre Início, Término e Emissão nas colunas',
+          msg: 'Início e Término = período em que o médico cursou a residência médica. Emissão do Certificado = data em que o MEC emitiu o documento de conclusão, geralmente dias a meses após o Término.',
           opts: []
         }
       ]
@@ -1544,22 +1545,53 @@ var _MENU = {
       opts: [
         {
           label: 'Como exportar a planilha',
-          msg: 'O botão Exportar Planilha fica disponível quando todo o processamento termina (ícone da aba para de girar). A planilha inclui: Certificado, Médico, CRM, Programa, Instituição, Estado, Início, Término, Emissão, Observações, Múltiplas Formações, Total Certificações, Telefone e E-mail.',
+          msg: 'Aguarde todo o processamento terminar (ícone da aba para de girar) e o botão Exportar Planilha ficará habilitado. A planilha em formato .xlsx inclui todos os dados visíveis na tabela — incluindo telefone e e-mail se o DoctorID estiver configurado.',
           opts: []
         },
         {
           label: 'Ocultar médicos sem telefone',
-          msg: 'Ative o filtro "Ocultar médicos sem telefone" para exibir apenas quem tem contato encontrado. Disponível após a busca de contatos finalizar. Ative antes de exportar para ter só quem tem telefone na planilha.',
+          msg: 'Após a busca de contatos finalizar (contador "Contatos" para de girar), o botão "Ocultar médicos sem telefone" fica disponível. Ao ativá-lo, a tabela e a planilha exportada mostram apenas quem tem telefone.',
           opts: []
         },
         {
           label: 'Ocultar médicos com certificação em outra instituição',
-          msg: 'O filtro "Ocultar médicos com certificação mais recente em outra instituição" remove quem já se formou em outra instituição. Útil ao pesquisar por uma instituição específica. Disponível após a verificação de múltiplas formações finalizar.',
+          msg: 'Disponível ao pesquisar por uma única instituição específica. O sistema verifica a certificação mais recente de cada médico — se for em outra instituição, ele é removido da lista. Útil para identificar médicos ainda ativos naquela instituição.',
           opts: []
         },
         {
-          label: 'Os filtros afetam a planilha',
-          msg: 'Sim. Os filtros ativos no momento da exportação determinam quais linhas aparecem na planilha. Ative os filtros desejados antes de clicar em Exportar Planilha.',
+          label: 'Os filtros ativos afetam a planilha exportada?',
+          msg: 'Sim. A planilha exporta exatamente o que está visível na tabela no momento do clique em Exportar. Ative os filtros desejados antes de exportar.',
+          opts: []
+        },
+        {
+          label: 'Como limpar filtros sem perder os resultados',
+          msg: 'O botão Limpar Seleções (aparece quando há filtros preenchidos) remove apenas os campos — UFs, instituições, programas e datas — sem apagar os resultados. O botão Nova Pesquisa recarrega a página completamente, zerando tudo.',
+          opts: []
+        }
+      ]
+    },
+    {
+      label: 'Problemas e dúvidas técnicas',
+      msg: 'Qual o problema que você está enfrentando?',
+      opts: [
+        {
+          label: 'A pesquisa demorou muito ou não retornou nada',
+          msg: 'A primeira pesquisa do dia pode demorar porque o servidor fica em repouso quando não está em uso — aguarde até 60 segundos. Pesquisas com muitos programas e estados levam mais tempo. A barra de progresso na tela mostra o andamento.',
+          opts: []
+        },
+        {
+          label: 'Nenhum resultado encontrado',
+          msg: 'Verifique se: (1) pelo menos um filtro está preenchido; (2) o nome está sendo buscado com a UF selecionada; (3) o período de datas não está restrito demais. Tente ampliar o intervalo de datas ou reduzir os filtros.',
+          opts: []
+        },
+        {
+          label: 'O campo Programa ou Instituição está desabilitado',
+          msg: 'O campo Instituição só habilita após selecionar pelo menos uma UF — isso é necessário para carregar as instituições daquele estado. O campo Programa também depende da UF para listar as especialidades disponíveis.',
+          opts: []
+        },
+        {
+          label: 'A página deu erro ou ficou em branco',
+          msg: 'Tente recarregar a página (F5 ou Ctrl+R). O servidor pode estar em repouso e precisar de alguns segundos para responder. Se o problema persistir, feche e reabra a aba. Se continuar, avise a equipe responsável.',
           opts: []
         }
       ]
@@ -1570,17 +1602,17 @@ var _MENU = {
       opts: [
         {
           label: 'Modo escuro',
-          msg: 'Clique em "Modo Escuro" no canto superior direito para alternar o tema. A preferência fica salva no navegador e é aplicada automaticamente nas próximas visitas.',
+          msg: 'Clique em Configurações no cabeçalho e ative o toggle "Modo Escuro". A preferência fica salva no navegador e é aplicada automaticamente nas próximas visitas.',
           opts: []
         },
         {
-          label: 'Botão Limpar',
-          msg: 'O botão Limpar recarrega a página completamente, zerando todos os filtros, resultados e seleções. Use-o para iniciar uma pesquisa totalmente nova.',
+          label: 'Para que serve o campo Nº Certificado?',
+          msg: 'Permite pesquisar pelo número exato de um certificado específico no SisCNRM. Útil quando você já tem o número e quer confirmar os dados ou verificar a validade.',
           opts: []
         },
         {
-          label: 'Nenhum resultado encontrado',
-          msg: 'Se não retornou resultados, verifique os filtros. O nome precisa estar em caixa alta (o campo faz isso automaticamente). Para nome parcial, selecione a instituição primeiro. Tente ampliar o período de datas ou reduzir os filtros aplicados.',
+          label: 'Para que serve o campo Data de Emissão (único)?',
+          msg: 'Filtra por uma data exata de emissão de certificado — diferente do intervalo Emissão Início/Fim, este campo é para quando você quer um dia específico. Pode ser combinado com CRM ou nome para buscar o certificado exato.',
           opts: []
         }
       ]
@@ -1588,8 +1620,6 @@ var _MENU = {
   ]
 };
 
-var _helpOpen = false;
-var _activeTab = 'manual';
 var _navStack = [_MENU];
 
 function toggleHelp() {
