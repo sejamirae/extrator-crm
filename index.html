@@ -2073,7 +2073,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ── Busca principal ───────────────────────────────────────────────────
-async function cfmBuscar(pagina) {
+async function cfmBuscar() {
   var token   = cfmGetToken();
   var uf      = document.getElementById('cfm-uf').value;
   var munId   = document.getElementById('cfm-mun-id').value;
@@ -2086,128 +2086,83 @@ async function cfmBuscar(pagina) {
   if (!uf)    { alert('Selecione a UF.'); return; }
   if (!munId) { alert('Selecione um município.'); return; }
 
-  pagina = pagina || 1;
-  cfmPaginaAtual = pagina;
-
+  cfmRows = []; cfmContatoCache = {};
   document.getElementById('btn-cfm-buscar').disabled = true;
   document.getElementById('sp-cfm').classList.remove('hidden');
+  document.getElementById('btn-cfm-limpar').style.display = '';
   cfmLog('Consultando CFM...', 'i');
 
-  var payload = [{
-    useCaptchav2: true,
-    captcha: token,
-    medico: {
-      nome: '',
-      ufMedico: uf,
-      crmMedico: '',
-      municipioMedico: munId,
-      tipoInscricaoMedico: tipo,
-      situacaoMedico: sit,
-      detalheSituacaoMedico: '',
-      especialidadeMedico: espId,
-      areaAtuacaoMedico: ''
-    },
-    page: pagina,
-    pageNumber: pagina,
-    pageSize: 50
-  }];
-
+  // ── Página 1 — descobre total ────────────────────────────────────
   try {
-    var r = await fetch(API + '/cfm/buscar', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        token: token, uf: uf, municipio_id: munId,
-        especialidade_id: espId, situacao: sit, tipo: tipo,
-        pagina: pagina, pageSize: 50
-      })
+    var r1 = await fetch(API + '/cfm/buscar', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token:token, uf:uf, municipio_id:munId,
+        especialidade_id:espId, situacao:sit, tipo:tipo, pagina:1, pageSize:50})
     });
-    var data = await r.json();
-
-    if (data.status !== 'sucesso') {
-      cfmLog('Erro: ' + (data.message || data.status || 'resposta inválida') + ' — gere um novo token.', '');
+    var d1 = await r1.json();
+    if (d1.status !== 'sucesso') {
+      cfmLog('Erro: ' + (d1.message || d1.status || 'token inválido') + ' — gere um novo token.', '');
       return;
     }
-
-    var dados = data.dados || [];
-    var total = dados.length > 0 ? parseInt(dados[0].COUNT || dados.length) : 0;
+    var dados1 = d1.dados || [];
+    var total  = dados1.length > 0 ? parseInt(dados1[0].COUNT || dados1.length) : 0;
     cfmTotalRegistros = total;
-    cfmTotalPaginas = Math.ceil(total / 50);
-
-    if (pagina === 1) {
-      cfmRows = dados;
-      cfmContatoCache = {};
-    } else {
-      dados.forEach(function(d) { cfmRows.push(d); });
-    }
-
+    cfmTotalPaginas   = Math.ceil(total / 50);
+    cfmRows = dados1;
     cfmRenderTabela(cfmRows, munNome, total);
-    document.getElementById('btn-cfm-limpar').style.display = '';
-
-    // Busca contatos automaticamente se DoctorID configurado
-    if (didEmail && didSenha && pagina === 1) cfmIniciarContatos(dados);
-    cfmLog('', '');
-
+    cfmLog('Carregando... 1/' + cfmTotalPaginas + ' — ' + cfmRows.length + '/' + total + ' médicos', 'i');
   } catch(e) {
     cfmLog('Erro: ' + e.message, '');
+    return;
   } finally {
     document.getElementById('btn-cfm-buscar').disabled = false;
     document.getElementById('sp-cfm').classList.add('hidden');
   }
-}
 
-// ── Buscar todas as páginas ───────────────────────────────────────────
-async function cfmBuscarTodas() {
-  if (cfmTotalPaginas <= 1) return;
-  cfmBuscandoTodas = true;
-  document.getElementById('btn-cfm-todas').disabled = true;
-  cfmLog('Buscando todas as ' + cfmTotalPaginas + ' páginas...', 'i');
-  var token = cfmGetToken();
-  var uf    = document.getElementById('cfm-uf').value;
-  var munId = document.getElementById('cfm-mun-id').value;
-  var munNome = document.getElementById('cfm-mun-nome').value;
-  var espId = document.getElementById('cfm-esp-id').value;
-  var sit   = document.getElementById('cfm-sit').value;
-  var tipo  = document.getElementById('cfm-tipo').value;
-
-  for (var p = 2; p <= cfmTotalPaginas; p++) {
-    var payload = [{
-      useCaptchav2: true, captcha: token,
-      medico: { nome:'', ufMedico:uf, crmMedico:'', municipioMedico:munId,
-        tipoInscricaoMedico:tipo, situacaoMedico:sit, detalheSituacaoMedico:'',
-        especialidadeMedico:espId, areaAtuacaoMedico:'' },
-      page:p, pageNumber:p, pageSize:50
-    }];
-    try {
-      var r = await fetch(API + '/cfm/buscar', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          token: token, uf: uf, municipio_id: munId,
-          especialidade_id: espId, situacao: sit, tipo: tipo,
-          pagina: p, pageSize: 50
-        })
-      });
-      var data = await r.json();
-      if (data.status !== 'sucesso') { cfmLog('Token expirou na página '+p+'. Gere um novo e clique em Buscar Todas novamente.',''); break; }
-      (data.dados||[]).forEach(function(d) { cfmRows.push(d); });
-      cfmLog('Buscando... página ' + p + ' de ' + cfmTotalPaginas + ' — ' + cfmRows.length + ' médicos', 'i');
-      cfmRenderTabela(cfmRows, munNome, cfmTotalRegistros);
-    } catch(e) { break; }
+  if (cfmTotalPaginas <= 1) {
+    cfmLog('', '');
+    if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
+    return;
   }
-  cfmBuscandoTodas = false;
+
+  // ── Páginas 2..N em paralelo (lotes de 5) ───────────────────────
+  var BATCH = 5;
+  for (var i = 2; i <= cfmTotalPaginas; i += BATCH) {
+    var lote = [];
+    for (var p = i; p < i + BATCH && p <= cfmTotalPaginas; p++) lote.push(p);
+    var resultados = await Promise.all(lote.map(function(pg) {
+      return fetch(API + '/cfm/buscar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token:token, uf:uf, municipio_id:munId,
+          especialidade_id:espId, situacao:sit, tipo:tipo, pagina:pg, pageSize:50})
+      }).then(function(r){return r.json();}).catch(function(){return {status:'erro'};});
+    }));
+    var tokenExpirou = false;
+    resultados.forEach(function(data) {
+      if (data.status !== 'sucesso') { tokenExpirou = true; return; }
+      (data.dados||[]).forEach(function(d) { cfmRows.push(d); });
+    });
+    var pct = Math.round(cfmRows.length / total * 100);
+    cfmLog(pct + '% — ' + cfmRows.length + '/' + total + ' médicos carregados', 'i');
+    cfmRenderTabela(cfmRows, munNome, total);
+    if (tokenExpirou) {
+      cfmLog('Token expirou após ' + cfmRows.length + ' médicos. Gere um novo token e clique em Buscar novamente para continuar.', '');
+      break;
+    }
+  }
+
   cfmLog('', '');
-  document.getElementById('btn-cfm-todas').style.display = 'none';
-  document.getElementById('btn-cfm-xl').classList.remove('hidden');
-  document.getElementById('btn-cfm-xl').disabled = false;
   if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
 }
 
 // ── Renderizar tabela ─────────────────────────────────────────────────
 function cfmRenderTabela(dados, cidade, total) {
   var pct = cfmTotalPaginas > 1 ? ' <span style="font-size:10px;color:var(--muted)">('+dados.length+'/'+total+')</span>' : '';
+  var comContato = Object.values(cfmContatoCache).filter(function(c){return c.telefone||c.email;}).length;
+  var jaTemStat = document.getElementById('cfm-stat-tel');
   document.getElementById('cfm-stats').innerHTML =
-    '<div class="stat"><div class="sv">' + total + pct + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
-    '<div class="stat" id="cfm-stat-tel"><div class="sv" style="color:var(--green)">0</div><div class="sl">Contatos</div></div>';
+    '<div class="stat"><div class="sv" id="cfm-sv-count">' + dados.length + (total > dados.length ? '<span style="font-size:10px;color:var(--muted)"> /'+total+'</span>' : '') + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
+    '<div class="stat" id="cfm-stat-tel"><div class="sv" style="color:var(--green)" id="cfm-sv-tel">' + comContato + '</div><div class="sl">Contatos</div></div>';
 
   document.getElementById('cfm-th').innerHTML =
     '<th>CRM</th><th>Nome</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Especialidade DID</th><th>Macrorregião</th>';
@@ -2232,23 +2187,9 @@ function cfmRenderTabela(dados, cidade, total) {
 
   document.getElementById('cfm-res').classList.remove('hidden');
 
-  // Paginação
+  // Remove paginação antiga se existir
   var nav = document.getElementById('cfm-pag');
   if (nav) nav.remove();
-  if (cfmTotalPaginas > 1) {
-    var navEl = document.createElement('div');
-    navEl.id = 'cfm-pag';
-    navEl.style.cssText = 'display:flex;gap:8px;align-items:center;justify-content:center;padding:12px 0;flex-wrap:wrap';
-    var h = '';
-    if (cfmPaginaAtual > 1) h += '<button class="btn btn-o" style="font-size:11px;padding:5px 12px" onclick="cfmBuscar('+(cfmPaginaAtual-1)+')">← Anterior</button>';
-    h += '<span style="font-size:12px;color:var(--muted)">Pág '+cfmPaginaAtual+'/'+cfmTotalPaginas+'</span>';
-    if (cfmPaginaAtual < cfmTotalPaginas) {
-      h += '<button class="btn btn-o" style="font-size:11px;padding:5px 12px" onclick="cfmBuscar('+(cfmPaginaAtual+1)+')">Próxima →</button>';
-      h += '<button class="btn btn-p" id="btn-cfm-todas" style="font-size:11px;padding:5px 14px" onclick="cfmBuscarTodas()">Buscar todas ('+cfmTotalRegistros+' médicos)</button>';
-    }
-    navEl.innerHTML = h;
-    document.getElementById('cfm-res').appendChild(navEl);
-  }
 
   if (dados.length > 0) {
     document.getElementById('btn-cfm-xl').classList.remove('hidden');
@@ -2305,8 +2246,8 @@ async function cfmIniciarContatos(dados) {
       }
     } catch(e) {}
     done += lote.length;
-    var statEl = document.getElementById('cfm-stat-tel');
-    if (statEl) statEl.querySelector('.sv').textContent = comContato;
+    var svTel = document.getElementById('cfm-sv-tel');
+    if (svTel) svTel.textContent = comContato;
   }
   cfmLog('', '');
 }
