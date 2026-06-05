@@ -378,7 +378,7 @@ body.dark #login-screen input::placeholder{color:#606060}
       </select>
     </div>
     <div class="field" style="margin:0;position:relative">
-      <label>Município <span style="color:var(--muted);font-weight:400">(adicione vários)</span></label>
+      <label>Município</label>
       <input type="text" id="cfm-mun-input" placeholder="Selecione a UF primeiro" disabled autocomplete="off" oninput="cfmFiltrarMunicipios()">
       <div id="cfm-mun-dd" class="dd"></div>
     </div>
@@ -386,7 +386,7 @@ body.dark #login-screen input::placeholder{color:#606060}
   <div id="cfm-mun-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;min-height:0"></div>
 
   <div class="field" style="margin-bottom:10px;position:relative">
-    <label>Especialidade <span style="color:var(--muted);font-weight:400">(adicione várias)</span></label>
+    <label>Especialidade <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
     <input type="text" id="cfm-esp-input" placeholder="Todas — ou filtre e adicione" autocomplete="off" oninput="cfmFiltrarEspecialidades()">
     <div id="cfm-esp-dd" class="dd"></div>
   </div>
@@ -2045,8 +2045,7 @@ function cfmFiltrarMunicipios() {
   }).slice(0, 30);
   if (!f.length) { dd.style.display='none'; return; }
     dd.innerHTML = f.map(function(m) {
-    var nomeEsc = m.DS_MUNICIPIO.replace(/'/g, '&#39;');
-    return '<div class="ddi" onclick="cfmSelecionarMunicipio(&quot;' + m.ID_MUNICIPIO + '&quot;,&quot;' + nomeEsc + '&quot;)">' + m.DS_MUNICIPIO + '</div>';
+    return '<div class="ddi" onclick="cfmSelecionarMunicipio(\'' + m.ID_MUNICIPIO + '\',\'' + m.DS_MUNICIPIO.replace(/'/g,"\\'"  ) + '\')">'+m.DS_MUNICIPIO+'</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -2064,7 +2063,7 @@ function cfmRenderMunTags() {
   var c = document.getElementById('cfm-mun-tags');
   if (!c) return;
   c.innerHTML = cfmCidadesSel.map(function(m) {
-    return '<span class="tag" onclick="cfmRemoverMun(&quot;'+m.id+'&quot;)">'+m.nome+' ×</span>';
+    return '<span class="tag" onclick="cfmRemoverMun(\'' + m.id + '\')">'+m.nome+' ×</span>';
   }).join('');
 }
 
@@ -2095,8 +2094,7 @@ function cfmFiltrarEspecialidades() {
   }).slice(0, 30);
   if (!f.length) { dd.style.display='none'; return; }
     dd.innerHTML = f.map(function(e) {
-    var nomeEsc = e.DS_ESPECIALIDADE.replace(/'/g, '&#39;');
-    return '<div class="ddi" onclick="cfmSelecionarEspecialidade(&quot;' + e.ID_ESPECIALIDADE + '&quot;,&quot;' + nomeEsc + '&quot;)">' + e.DS_ESPECIALIDADE + '</div>';
+    return '<div class="ddi" onclick="cfmSelecionarEspecialidade(\'' + e.ID_ESPECIALIDADE + '\',\'' + e.DS_ESPECIALIDADE.replace(/'/g,"\\'"  ) + '\')">'+e.DS_ESPECIALIDADE+'</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -2113,7 +2111,7 @@ function cfmRenderEspTags() {
   var c = document.getElementById('cfm-esp-tags');
   if (!c) return;
   c.innerHTML = cfmEspSel.map(function(e) {
-    return '<span class="tag" onclick="cfmRemoverEsp(&quot;'+e.id+'&quot;)">'+e.nome+' ×</span>';
+    return '<span class="tag" onclick="cfmRemoverEsp(\'' + e.id + '\')">'+e.nome+' ×</span>';
   }).join('');
   if (!cfmEspSel.length) c.innerHTML = '';
 }
