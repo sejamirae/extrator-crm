@@ -363,10 +363,14 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <div class="sec">CFM — Busca por Cidade</div>
 
-  <!-- Status token -->
-  <div id="cfm-token-banner" style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:11px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-    <span id="cfm-banner-msg" style="color:var(--muted)">⚠ Nenhum token CFM salvo — vá em Configurações para gerar</span>
-    <span id="cfm-banner-timer" style="color:var(--gold);font-weight:600;white-space:nowrap;display:none"></span>
+  <!-- Status token CFM — igual ao DoctorID -->
+  <div class="div" id="div-cfm-status">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="did-dot" id="cfm-dot"></span>
+      <span class="sec" style="margin:0">Token CFM</span>
+      <span style="font-size:10px;color:var(--muted)" id="cfm-st">Não configurado — vá em Configurações</span>
+      <span id="cfm-banner-timer" style="font-size:10px;color:var(--green);font-weight:600;display:none"></span>
+    </div>
   </div>
 
   <div class="g3" style="margin-bottom:12px">
@@ -2345,8 +2349,11 @@ function salvarCfmToken() {
   localStorage.setItem('cfm_token_expiry', _cfmTokenExpiry);
   cfmAtualizarStatusToken();
   cfmIniciarContador();
-  // Atualiza banner na aba CFM
   cfmAtualizarBanner();
+  var dot3 = document.getElementById('cfm-dot');
+  if (dot3) dot3.classList.add('on');
+  var st3 = document.getElementById('cfm-st');
+  if (st3) st3.textContent = 'Configurado';
   var msg = document.getElementById('cfg-cfm-msg');
   if (msg) msg.innerHTML = '<span style="color:var(--green)">✓ Token salvo!</span>';
 }
@@ -2379,6 +2386,10 @@ function cfmIniciarContador() {
       clearInterval(_cfmTimerInterval);
       _cfmTokenGlobal = '';
       cfmAtualizarBanner();
+      var dot2 = document.getElementById('cfm-dot');
+      if (dot2) dot2.classList.remove('on');
+      var st2 = document.getElementById('cfm-st');
+      if (st2) st2.textContent = 'Token expirou — vá em Configurações';
       var msg = document.getElementById('cfg-cfm-msg');
       if (msg) msg.innerHTML = '<span style="color:var(--gold)">Token expirou — gere um novo</span>';
     }
@@ -2396,19 +2407,18 @@ function cfmAtualizarStatusToken() {
 }
 
 function cfmAtualizarBanner() {
-  var banner = document.getElementById('cfm-token-banner');
-  var bannerMsg = document.getElementById('cfm-banner-msg');
-  var bannerTimer = document.getElementById('cfm-banner-timer');
+  var dot   = document.getElementById('cfm-dot');
+  var st    = document.getElementById('cfm-st');
+  var timer = document.getElementById('cfm-banner-timer');
   var restante = Math.max(0, Math.floor((_cfmTokenExpiry - Date.now()) / 1000));
-  if (!banner) return;
   if (_cfmTokenGlobal && restante > 0) {
-    banner.style.borderLeftColor = 'var(--green)';
-    if (bannerMsg) bannerMsg.innerHTML = '<span style="color:var(--green)">✓ Token CFM ativo</span>';
-    if (bannerTimer) bannerTimer.style.display = '';
+    if (dot)   { dot.classList.add('on'); }
+    if (st)    st.textContent = 'Configurado';
+    if (timer) timer.style.display = '';
   } else {
-    banner.style.borderLeftColor = 'var(--gold)';
-    if (bannerMsg) bannerMsg.innerHTML = '<span style="color:var(--gold)">⚠ Token expirado ou não configurado — vá em Configurações</span>';
-    if (bannerTimer) bannerTimer.style.display = 'none';
+    if (dot)   { dot.classList.remove('on'); }
+    if (st)    st.textContent = 'Não configurado — vá em Configurações';
+    if (timer) timer.style.display = 'none';
   }
 }
 
