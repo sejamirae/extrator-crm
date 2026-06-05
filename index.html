@@ -1998,7 +1998,7 @@ async function cfmCarregarMunicipios() {
   cfmMunicipios = [];
   if (!uf) { inp.placeholder = 'Selecione a UF primeiro'; return; }
   try {
-    var r = await fetch(CFM_API + '/listar_municipios/' + uf);
+    var r = await fetch(API + '/cfm/municipios/' + uf);
     var d = await r.json();
     cfmMunicipios = d.dados || [];
     inp.disabled = false;
@@ -2033,7 +2033,7 @@ function cfmSelecionarMunicipio(id, nome) {
 // ── Carregar especialidades ───────────────────────────────────────────
 async function cfmCarregarEspecialidades() {
   try {
-    var r = await fetch(CFM_API + '/listar_especialidades');
+    var r = await fetch(API + '/cfm/especialidades');
     var d = await r.json();
     cfmEspecialidades = d.dados || [];
   } catch(e) {}
@@ -2113,10 +2113,14 @@ async function cfmBuscar(pagina) {
   }];
 
   try {
-    var r = await fetch(CFM_API.replace('/v2','/v2') + '/buscar_medicos', {
+    var r = await fetch(API + '/cfm/buscar', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        token: token, uf: uf, municipio_id: munId,
+        especialidade_id: espId, situacao: sit, tipo: tipo,
+        pagina: pagina, pageSize: 50
+      })
     });
     var data = await r.json();
 
@@ -2175,9 +2179,13 @@ async function cfmBuscarTodas() {
       page:p, pageNumber:p, pageSize:50
     }];
     try {
-      var r = await fetch(CFM_API + '/buscar_medicos', {
+      var r = await fetch(API + '/cfm/buscar', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
+        body: JSON.stringify({
+          token: token, uf: uf, municipio_id: munId,
+          especialidade_id: espId, situacao: sit, tipo: tipo,
+          pagina: p, pageSize: 50
+        })
       });
       var data = await r.json();
       if (data.status !== 'sucesso') { cfmLog('Token expirou na página '+p+'. Gere um novo e clique em Buscar Todas novamente.',''); break; }
