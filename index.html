@@ -345,13 +345,14 @@ body.dark #login-screen input::placeholder{color:#606060}
   <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:3px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--text);line-height:1.7">
     <strong style="display:block;margin-bottom:4px">Como usar:</strong>
     1. Abra <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" style="color:var(--teal)">portal.cfm.org.br/busca-medicos</a> em outra aba<br>
-    2. Faça qualquer busca lá (F12 → Network → clique em <code>buscar_medicos</code> → Payload → copie o valor de <code>captcha</code>)<br>
-    3. Cole o token abaixo e clique em Buscar — o token dura ~2 minutos
+    2. Faça qualquer busca lá → F12 → Network → clique em <code>buscar_medicos</code> → aba <strong>Payload</strong><br>
+    3. Selecione tudo (<kbd>Ctrl+A</kbd>), copie e cole o conteúdo inteiro abaixo — o extrator extrai o token automaticamente
   </div>
 
   <div class="field" style="margin-bottom:10px">
-    <label>Token reCaptcha <span style="color:var(--muted);font-weight:400">(cole aqui)</span></label>
-    <input type="text" id="cfm-token" placeholder="Cole o token copiado do DevTools..." style="font-size:10px;font-family:monospace">
+    <label>Payload do CFM <span style="color:var(--muted);font-weight:400">(cole o conteúdo completo do Payload)</span></label>
+    <textarea id="cfm-token" rows="3" placeholder='Cole aqui o payload copiado do DevTools, ex: [{"useCaptchav2":true,"captcha":"0cAFc...","medico":{...}}]' style="font-size:10px;font-family:monospace;width:100%;resize:vertical;padding:6px 8px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-family:monospace" oninput="cfmExtrairToken(this.value)"></textarea>
+    <div id="cfm-token-status" style="font-size:10px;color:var(--muted);margin-top:3px"></div>
   </div>
 
   <div class="g3" style="margin-bottom:12px">
@@ -1943,6 +1944,39 @@ function trocarAba(aba) {
   if (aba === 'cfm' && cfmEspecialidades.length === 0) cfmCarregarEspecialidades();
 }
 
+function cfmExtrairToken(val) {
+  var status = document.getElementById('cfm-token-status');
+  if (!val.trim()) { if(status) status.textContent=''; return; }
+  try {
+    // Tenta parsear como JSON array (payload completo)
+    var parsed = JSON.parse(val.trim());
+    var token = '';
+    if (Array.isArray(parsed) && parsed[0] && parsed[0].captcha) {
+      token = parsed[0].captcha;
+    } else if (parsed.captcha) {
+      token = parsed.captcha;
+    }
+    if (token) {
+      document.getElementById('cfm-token').dataset.token = token;
+      if (status) status.innerHTML = '<span style="color:var(--green)">✓ Token extraído com sucesso (' + token.length + ' chars)</span>';
+    } else {
+      // Pode ser que colou só o token direto
+      document.getElementById('cfm-token').dataset.token = val.trim();
+      if (status) status.innerHTML = '<span style="color:var(--gold)">⚠ Usando valor diretamente como token</span>';
+    }
+  } catch(e) {
+    // Não é JSON — assume que é o token direto
+    document.getElementById('cfm-token').dataset.token = val.trim();
+    if (status) status.innerHTML = '<span style="color:var(--gold)">⚠ Usando valor diretamente como token</span>';
+  }
+}
+
+function cfmGetToken() {
+  var el = document.getElementById('cfm-token');
+  // Prefere o token extraído do dataset, senão usa o valor bruto
+  return (el.dataset.token || el.value || '').trim();
+}
+
 function cfmLog(msg, tipo) {
   var el = document.getElementById('cfm-log');
   if (!el) return;
@@ -2039,7 +2073,7 @@ document.addEventListener('click', function(e) {
 
 // ── Busca principal ───────────────────────────────────────────────────
 async function cfmBuscar(pagina) {
-  var token   = document.getElementById('cfm-token').value.trim();
+  var token   = cfmGetToken();
   var uf      = document.getElementById('cfm-uf').value;
   var munId   = document.getElementById('cfm-mun-id').value;
   var munNome = document.getElementById('cfm-mun-nome').value;
@@ -2123,7 +2157,7 @@ async function cfmBuscarTodas() {
   cfmBuscandoTodas = true;
   document.getElementById('btn-cfm-todas').disabled = true;
   cfmLog('Buscando todas as ' + cfmTotalPaginas + ' páginas...', 'i');
-  var token = document.getElementById('cfm-token').value.trim();
+  var token = cfmGetToken();
   var uf    = document.getElementById('cfm-uf').value;
   var munId = document.getElementById('cfm-mun-id').value;
   var munNome = document.getElementById('cfm-mun-nome').value;
@@ -2324,7 +2358,8 @@ function cfmLimpar() {
   document.getElementById('btn-cfm-limpar').style.display='none';
   document.getElementById('btn-cfm-xl').classList.add('hidden');
   document.getElementById('btn-cfm-st').classList.add('hidden');
-  document.getElementById('cfm-token').value='';
+  var tkEl = document.getElementById('cfm-token'); tkEl.value=''; tkEl.dataset.token='';
+  var stEl = document.getElementById('cfm-token-status'); if(stEl) stEl.textContent='';
   document.getElementById('cfm-mun-input').value='';
   document.getElementById('cfm-mun-id').value='';
   document.getElementById('cfm-mun-nome').value='';
