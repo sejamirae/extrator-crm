@@ -432,7 +432,6 @@ body.dark #login-screen input::placeholder{color:#606060}
 </div>
 
 <div class="log" id="cfm-log"></div>
-
 <div id="cfm-res" class="hidden mt10">
   <div class="stats" id="cfm-stats"></div>
   <div class="tbl-wrap">
@@ -2317,7 +2316,7 @@ async function cfmIniciarContatos(dados) {
     var lote = crmsU.slice(i, i+BULK);
     loteNum++;
     if(loteNum===1) tempoRestante('cfm-contatos',1,totalLotes);
-    setLog('Contatos: ' + Math.round(loteNum/totalLotes*100) + '%' + tempoRestante('cfm-contatos', loteNum, totalLotes), 'i', loteNum <= 2);
+    cfmLog('Contatos: ' + Math.round(loteNum/totalLotes*100) + '%' + tempoRestante('cfm-contatos', loteNum, totalLotes), 'i', true);
     try {
       var p = new URLSearchParams({email:didEmail, senha:didSenha, crms:lote.join(',')});
       var r = await fetch(API+'/telefone_bulk?'+p.toString());
