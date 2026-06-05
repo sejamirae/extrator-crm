@@ -1981,8 +1981,9 @@ function cfmFiltrarMunicipios() {
     return m.DS_MUNICIPIO.toLowerCase().indexOf(q) >= 0;
   }).slice(0, 30);
   if (!f.length) { dd.style.display='none'; return; }
-  dd.innerHTML = f.map(function(m) {
-    return '<div class="ddi" onclick="cfmSelecionarMunicipio('' + m.ID_MUNICIPIO + '','' + m.DS_MUNICIPIO.replace(/'/g,"\'") + '')">' + m.DS_MUNICIPIO + '</div>';
+    dd.innerHTML = f.map(function(m) {
+    var nomeEsc = m.DS_MUNICIPIO.replace(/'/g, '&#39;');
+    return '<div class="ddi" onclick="cfmSelecionarMunicipio(&quot;' + m.ID_MUNICIPIO + '&quot;,&quot;' + nomeEsc + '&quot;)">' + m.DS_MUNICIPIO + '</div>';
   }).join('');
   dd.style.display = 'block';
 }
@@ -2015,8 +2016,9 @@ function cfmFiltrarEspecialidades() {
     return e.DS_ESPECIALIDADE.toLowerCase().indexOf(q) >= 0;
   }).slice(0, 30);
   if (!f.length) { dd.style.display='none'; return; }
-  dd.innerHTML = f.map(function(e) {
-    return '<div class="ddi" onclick="cfmSelecionarEspecialidade('' + e.ID_ESPECIALIDADE + '','' + e.DS_ESPECIALIDADE.replace(/'/g,"\'") + '')">' + e.DS_ESPECIALIDADE + '</div>';
+    dd.innerHTML = f.map(function(e) {
+    var nomeEsc = e.DS_ESPECIALIDADE.replace(/'/g, '&#39;');
+    return '<div class="ddi" onclick="cfmSelecionarEspecialidade(&quot;' + e.ID_ESPECIALIDADE + '&quot;,&quot;' + nomeEsc + '&quot;)">' + e.DS_ESPECIALIDADE + '</div>';
   }).join('');
   dd.style.display = 'block';
 }
