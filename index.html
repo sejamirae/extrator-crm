@@ -1013,6 +1013,20 @@ function marcarFim(proc){
   }
 }
 
+// ── Processos CFM (separado do SisCNRM) ──────────────────────────────
+var _processosCfm = {busca: false, contatos: false};
+function cfmMarcarInicio(proc){ _processosCfm[proc]=true; iniciarFaviconLoader(); }
+function cfmMarcarFim(proc){
+  _processosCfm[proc]=false;
+  var algumAtivo=Object.values(_processosCfm).some(function(v){return v;});
+  if(!algumAtivo){
+    document.getElementById('btn-cfm-xl').classList.remove('hidden');
+    document.getElementById('btn-cfm-xl').disabled=false;
+    pararFaviconLoader();
+    cfmLog('','',true);
+  }
+}
+
 var _lastLogTime=0;
 var _lastLogTipo='';
 var _tempoInicio={};
@@ -2154,6 +2168,10 @@ async function cfmBuscar() {
 
   cfmRows = []; cfmContatoCache = {};
   cfmCidadeAtual = cfmCidadesSel.map(function(c){return c.nome;}).join(', ');
+  cfmMarcarInicio('busca');
+  document.getElementById('btn-cfm-xl').classList.add('hidden');
+  document.getElementById('btn-cfm-xl').disabled = true;
+  document.getElementById('btn-cfm-st').classList.add('hidden');
   document.getElementById('btn-cfm-buscar').disabled = true;
   document.getElementById('sp-cfm').classList.remove('hidden');
   document.getElementById('btn-cfm-limpar').style.display = '';
@@ -2215,6 +2233,7 @@ async function cfmBuscar() {
 
   document.getElementById('btn-cfm-buscar').disabled = false;
   document.getElementById('sp-cfm').classList.add('hidden');
+  cfmMarcarFim('busca');
   cfmLog('', '');
   if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
 }
@@ -2259,12 +2278,6 @@ function cfmRenderTabela(dados, cidade, total) {
   var nav = document.getElementById('cfm-pag');
   if (nav) nav.remove();
 
-  if (dados.length > 0) {
-    document.getElementById('btn-cfm-xl').classList.remove('hidden');
-    document.getElementById('btn-cfm-xl').disabled = false;
-    document.getElementById('btn-cfm-st').classList.remove('hidden');
-    document.getElementById('btn-cfm-st').disabled = false;
-  }
 }
 
 // ── Contatos DoctorID para aba CFM ────────────────────────────────────
@@ -2277,7 +2290,7 @@ async function cfmIniciarContatos(dados) {
   });
   if (!crmsU.length) return;
 
-  marcarInicio('cfm-contatos');
+  cfmMarcarInicio('contatos');
   var statsEl = document.getElementById('cfm-stats');
   document.querySelectorAll('#cfm-stat-tel').forEach(function(el){el.remove();});
   var s = document.createElement('div'); s.className='stat'; s.id='cfm-stat-tel';
@@ -2336,7 +2349,7 @@ async function cfmIniciarContatos(dados) {
         statEl.querySelector('.sv').innerHTML = '<span style="color:var(--green)">'+comContato+'</span> <span class="spin" title="'+pct+'%"></span>';
       }
     }
-    if (done >= total) marcarFim('cfm-contatos');
+    if (done >= total) cfmMarcarFim('contatos');
   }
   cfmLog('', '');
 }
