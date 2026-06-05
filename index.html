@@ -363,7 +363,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <div class="sec">CFM — Busca por Cidade</div>
 
-  <div class="g3" style="margin-bottom:12px">
+  <div class="g2" style="margin-bottom:10px">
     <div class="field" style="margin:0;position:relative">
       <label>UF</label>
       <select id="cfm-uf" onchange="cfmCarregarMunicipios()">
@@ -378,19 +378,19 @@ body.dark #login-screen input::placeholder{color:#606060}
       </select>
     </div>
     <div class="field" style="margin:0;position:relative">
-      <label>Município</label>
+      <label>Município <span style="color:var(--muted);font-weight:400">(adicione vários)</span></label>
       <input type="text" id="cfm-mun-input" placeholder="Selecione a UF primeiro" disabled autocomplete="off" oninput="cfmFiltrarMunicipios()">
       <div id="cfm-mun-dd" class="dd"></div>
-      <input type="hidden" id="cfm-mun-id" value="">
-      <input type="hidden" id="cfm-mun-nome" value="">
-    </div>
-    <div class="field" style="margin:0;position:relative">
-      <label>Especialidade <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
-      <input type="text" id="cfm-esp-input" placeholder="Todas" autocomplete="off" oninput="cfmFiltrarEspecialidades()">
-      <div id="cfm-esp-dd" class="dd"></div>
-      <input type="hidden" id="cfm-esp-id" value="">
     </div>
   </div>
+  <div id="cfm-mun-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;min-height:0"></div>
+
+  <div class="field" style="margin-bottom:10px;position:relative">
+    <label>Especialidade <span style="color:var(--muted);font-weight:400">(adicione várias)</span></label>
+    <input type="text" id="cfm-esp-input" placeholder="Todas — ou filtre e adicione" autocomplete="off" oninput="cfmFiltrarEspecialidades()">
+    <div id="cfm-esp-dd" class="dd"></div>
+  </div>
+  <div id="cfm-esp-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:10px;min-height:0"></div>
 
   <div class="g2" style="margin-bottom:12px">
     <div class="field" style="margin:0">
@@ -1938,6 +1938,8 @@ function _initChat() {
 var CFM_API = 'https://portal.cfm.org.br/api_rest_php/api/v2/medicos';
 var cfmMunicipios = [];      // [{ID_MUNICIPIO, DS_MUNICIPIO}]
 var cfmEspecialidades = [];  // [{ID_ESPECIALIDADE, DS_ESPECIALIDADE}]
+var cfmCidadesSel = [];      // [{id, nome}] cidades selecionadas
+var cfmEspSel = [];          // [{id, nome}] especialidades selecionadas
 var cfmRows = [];
 var cfmRowsView = [];
 var cfmContatoCache = {};
@@ -2012,10 +2014,25 @@ function cfmFiltrarMunicipios() {
 }
 
 function cfmSelecionarMunicipio(id, nome) {
-  document.getElementById('cfm-mun-input').value = nome;
-  document.getElementById('cfm-mun-id').value = id;
-  document.getElementById('cfm-mun-nome').value = nome;
   document.getElementById('cfm-mun-dd').style.display = 'none';
+  document.getElementById('cfm-mun-input').value = '';
+  // Evita duplicata
+  if (cfmCidadesSel.find(function(c){return c.id===id;})) return;
+  cfmCidadesSel.push({id:id, nome:nome});
+  cfmRenderMunTags();
+}
+
+function cfmRenderMunTags() {
+  var c = document.getElementById('cfm-mun-tags');
+  if (!c) return;
+  c.innerHTML = cfmCidadesSel.map(function(m) {
+    return '<span class="tag" onclick="cfmRemoverMun(''+m.id+'')">'+m.nome+' ×</span>';
+  }).join('');
+}
+
+function cfmRemoverMun(id) {
+  cfmCidadesSel = cfmCidadesSel.filter(function(c){return c.id!==id;});
+  cfmRenderMunTags();
 }
 
 // ── Carregar especialidades ───────────────────────────────────────────
@@ -2047,9 +2064,25 @@ function cfmFiltrarEspecialidades() {
 }
 
 function cfmSelecionarEspecialidade(id, nome) {
-  document.getElementById('cfm-esp-input').value = nome;
-  document.getElementById('cfm-esp-id').value = id;
   document.getElementById('cfm-esp-dd').style.display = 'none';
+  document.getElementById('cfm-esp-input').value = '';
+  if (cfmEspSel.find(function(e){return e.id===id;})) return;
+  cfmEspSel.push({id:id, nome:nome});
+  cfmRenderEspTags();
+}
+
+function cfmRenderEspTags() {
+  var c = document.getElementById('cfm-esp-tags');
+  if (!c) return;
+  c.innerHTML = cfmEspSel.map(function(e) {
+    return '<span class="tag" onclick="cfmRemoverEsp(''+e.id+'')">'+e.nome+' ×</span>';
+  }).join('');
+  if (!cfmEspSel.length) c.innerHTML = '';
+}
+
+function cfmRemoverEsp(id) {
+  cfmEspSel = cfmEspSel.filter(function(e){return e.id!==id;});
+  cfmRenderEspTags();
 }
 
 // ── Fechar dropdowns ao clicar fora ──────────────────────────────────
@@ -2062,84 +2095,87 @@ document.addEventListener('click', function(e) {
 
 // ── Busca principal ───────────────────────────────────────────────────
 async function cfmBuscar() {
-  var token   = cfmGetToken();
-  var uf      = document.getElementById('cfm-uf').value;
-  var munId   = document.getElementById('cfm-mun-id').value;
-  var munNome = document.getElementById('cfm-mun-nome').value;
-  var espId   = document.getElementById('cfm-esp-id').value;
-  var sit     = document.getElementById('cfm-sit').value;
-  var tipo    = document.getElementById('cfm-tipo').value;
+  var token = cfmGetToken();
+  var uf    = document.getElementById('cfm-uf').value;
+  var sit   = document.getElementById('cfm-sit').value;
+  var tipo  = document.getElementById('cfm-tipo').value;
 
-  if (!token) { alert('Cole o token reCaptcha antes de buscar.'); return; }
+  if (!token) { alert('Configure o token CFM em Configurações antes de buscar.'); return; }
   if (!uf)    { alert('Selecione a UF.'); return; }
-  if (!munId) { alert('Selecione um município.'); return; }
+  if (!cfmCidadesSel.length) { alert('Adicione ao menos um município.'); return; }
+
+  // Combina cidades × especialidades (ou cidade × sem-filtro se nenhuma esp)
+  var combos = [];
+  var esps = cfmEspSel.length ? cfmEspSel : [{id:'', nome:''}];
+  cfmCidadesSel.forEach(function(mun) {
+    esps.forEach(function(esp) {
+      combos.push({munId: mun.id, munNome: mun.nome, espId: esp.id, espNome: esp.nome});
+    });
+  });
 
   cfmRows = []; cfmContatoCache = {};
-  cfmCidadeAtual = document.getElementById('cfm-mun-nome').value;
+  cfmCidadeAtual = cfmCidadesSel.map(function(c){return c.nome;}).join(', ');
   document.getElementById('btn-cfm-buscar').disabled = true;
   document.getElementById('sp-cfm').classList.remove('hidden');
   document.getElementById('btn-cfm-limpar').style.display = '';
   cfmLog('Consultando CFM...', 'i');
 
-  // ── Página 1 — descobre total ────────────────────────────────────
-  try {
-    var r1 = await fetch(API + '/cfm/buscar', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({token:token, uf:uf, municipio_id:munId,
-        especialidade_id:espId, situacao:sit, tipo:tipo, pagina:1, pageSize:50})
-    });
-    var d1 = await r1.json();
+  // ── Itera sobre cada combinação cidade × especialidade ──────────
+  var totalGeral = 0;
+  for (var ci = 0; ci < combos.length; ci++) {
+    var combo = combos[ci];
+    var prefixo = combos.length > 1 ? '['+combo.munNome+(combo.espNome?' / '+combo.espNome:'')+'] ' : '';
+
+    // Página 1 — descobre total desta combo
+    var r1, d1;
+    try {
+      r1 = await fetch(API + '/cfm/buscar', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token:token, uf:uf, municipio_id:combo.munId,
+          especialidade_id:combo.espId, situacao:sit, tipo:tipo, pagina:1, pageSize:50})
+      });
+      d1 = await r1.json();
+    } catch(e) { cfmLog('Erro de rede: '+e.message,''); break; }
+
     if (d1.status !== 'sucesso') {
-      cfmLog('Erro: ' + (d1.message || d1.status || 'token inválido') + ' — gere um novo token.', '');
-      return;
-    }
-    var dados1 = d1.dados || [];
-    var total  = dados1.length > 0 ? parseInt(dados1[0].COUNT || dados1.length) : 0;
-    cfmTotalRegistros = total;
-    cfmTotalPaginas   = Math.ceil(total / 50);
-    cfmRows = dados1;
-    cfmRenderTabela(cfmRows, munNome, total);
-    cfmLog('Carregando... 1/' + cfmTotalPaginas + ' — ' + cfmRows.length + '/' + total + ' médicos', 'i');
-  } catch(e) {
-    cfmLog('Erro: ' + e.message, '');
-    return;
-  } finally {
-    document.getElementById('btn-cfm-buscar').disabled = false;
-    document.getElementById('sp-cfm').classList.add('hidden');
-  }
-
-  if (cfmTotalPaginas <= 1) {
-    cfmLog('', '');
-    if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
-    return;
-  }
-
-  // ── Páginas 2..N em paralelo (lotes de 5) ───────────────────────
-  var BATCH = 5;
-  for (var i = 2; i <= cfmTotalPaginas; i += BATCH) {
-    var lote = [];
-    for (var p = i; p < i + BATCH && p <= cfmTotalPaginas; p++) lote.push(p);
-    var resultados = await Promise.all(lote.map(function(pg) {
-      return fetch(API + '/cfm/buscar', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({token:token, uf:uf, municipio_id:munId,
-          especialidade_id:espId, situacao:sit, tipo:tipo, pagina:pg, pageSize:50})
-      }).then(function(r){return r.json();}).catch(function(){return {status:'erro'};});
-    }));
-    var tokenExpirou = false;
-    resultados.forEach(function(data) {
-      if (data.status !== 'sucesso') { tokenExpirou = true; return; }
-      (data.dados||[]).forEach(function(d) { cfmRows.push(d); });
-    });
-    var pct = Math.round(cfmRows.length / total * 100);
-    cfmLog(pct + '% — ' + cfmRows.length + '/' + total + ' médicos carregados', 'i');
-    cfmRenderTabela(cfmRows, munNome, total);
-    if (tokenExpirou) {
-      cfmLog('Token expirou após ' + cfmRows.length + ' médicos. Gere um novo token e clique em Buscar novamente para continuar.', '');
+      cfmLog(prefixo+'Token inválido ou expirado — gere um novo em Configurações.','');
       break;
     }
+    var dados1 = d1.dados || [];
+    var total  = dados1.length > 0 ? parseInt(dados1[0].COUNT||dados1.length) : 0;
+    totalGeral += total;
+    var totalPags = Math.ceil(total / 50);
+
+    dados1.forEach(function(d){ d._cidade=combo.munNome; cfmRows.push(d); });
+    cfmRenderTabela(cfmRows, cfmCidadeAtual, totalGeral);
+    cfmLog(prefixo+'Carregando... 1/'+totalPags+' — '+cfmRows.length+' médicos', 'i');
+
+    // Páginas 2..N em paralelo
+    var BATCH = 5, tokenExpirou = false;
+    for (var pi = 2; pi <= totalPags; pi += BATCH) {
+      var lote2 = [];
+      for (var pp = pi; pp < pi+BATCH && pp <= totalPags; pp++) lote2.push(pp);
+      var ress = await Promise.all(lote2.map(function(pg) {
+        return fetch(API + '/cfm/buscar', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({token:token, uf:uf, municipio_id:combo.munId,
+            especialidade_id:combo.espId, situacao:sit, tipo:tipo, pagina:pg, pageSize:50})
+        }).then(function(r){return r.json();}).catch(function(){return {status:'erro'};});
+      }));
+      ress.forEach(function(data) {
+        if (data.status !== 'sucesso') { tokenExpirou=true; return; }
+        (data.dados||[]).forEach(function(d){ d._cidade=combo.munNome; cfmRows.push(d); });
+      });
+      var pct = Math.round(cfmRows.length / totalGeral * 100);
+      cfmLog(prefixo+pct+'% — '+cfmRows.length+' médicos carregados', 'i');
+      cfmRenderTabela(cfmRows, cfmCidadeAtual, totalGeral);
+      if (tokenExpirou) { cfmLog(prefixo+'Token expirou. Gere um novo e busque novamente.',''); break; }
+    }
+    if (tokenExpirou) break;
   }
 
+  document.getElementById('btn-cfm-buscar').disabled = false;
+  document.getElementById('sp-cfm').classList.add('hidden');
   cfmLog('', '');
   if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
 }
@@ -2148,10 +2184,9 @@ async function cfmBuscar() {
 function cfmRenderTabela(dados, cidade, total) {
   var pct = cfmTotalPaginas > 1 ? ' <span style="font-size:10px;color:var(--muted)">('+dados.length+'/'+total+')</span>' : '';
   var comContato = Object.values(cfmContatoCache).filter(function(c){return c.telefone||c.email;}).length;
-  var jaTemStat = document.getElementById('cfm-stat-tel');
   document.getElementById('cfm-stats').innerHTML =
     '<div class="stat"><div class="sv" id="cfm-sv-count">' + dados.length + (total > dados.length ? '<span style="font-size:10px;color:var(--muted)"> /'+total+'</span>' : '') + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
-    '<div class="stat" id="cfm-stat-tel"><div class="sv" style="color:var(--green)" id="cfm-sv-tel">' + comContato + '</div><div class="sl">Contatos</div></div>';
+    '<div class="stat" id="cfm-stat-tel"><div class="sv" id="cfm-sv-tel"><span style="color:var(--green)">' + comContato + '</span> <span class="spin" style="display:none" id="cfm-spin-tel"></span></div><div class="sl">Contatos</div></div>';
 
   document.getElementById('cfm-th').innerHTML =
     '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
@@ -2161,7 +2196,7 @@ function cfmRenderTabela(dados, cidade, total) {
     var ct  = cfmContatoCache[crm] || {};
     var espCfm = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').replace(/\([^)]*\)/g,'').trim();
     var sit = r.SITUACAO === 'Regular' ? '<span style="color:var(--green)">Regular</span>' : '<span style="color:var(--muted)">'+(r.SITUACAO||'')+'</span>';
-    var cidade = cfmCidadeAtual || '';
+    var cidade = r._cidade || cfmCidadeAtual || '';
     var uf = r.SG_UF || '';
     return '<tr>' +
       '<td style="white-space:nowrap;font-weight:600">' + crm + '/' + uf + '</td>' +
@@ -2201,10 +2236,13 @@ async function cfmIniciarContatos(dados) {
   });
   if (!crmsU.length) return;
 
+  // Mostrar spin
+  var spinEl = document.getElementById('cfm-spin-tel');
+  if (spinEl) spinEl.style.display = '';
+
   var BULK = 8, total = crmsU.length, done = 0, comContato = 0;
   for (var i = 0; i < crmsU.length; i += BULK) {
     var lote = crmsU.slice(i, i+BULK);
-    cfmLog('Contatos: ' + Math.round((done/total)*100) + '% — ' + comContato + ' encontrados', 'i');
     try {
       var p = new URLSearchParams({email:didEmail, senha:didSenha, crms:lote.join(',')});
       var r = await fetch(API+'/telefone_bulk?'+p.toString());
@@ -2218,19 +2256,16 @@ async function cfmIniciarContatos(dados) {
             macrorregioes: info.macrorregioes||[]
           };
           if (info.telefone||info.email) comContato++;
-          // Atualiza células na tabela
           dados.forEach(function(row, ri) {
             if ((row.NU_CRM||'') === crm) {
               var ct = cfmContatoCache[crm];
               var telEl = document.getElementById('cfm-tel-'+ri);
               var emlEl = document.getElementById('cfm-eml-'+ri);
               var cpfEl = document.getElementById('cfm-cpf-'+ri);
-              var espEl = document.getElementById('cfm-esp-'+ri);
               var macEl = document.getElementById('cfm-mac-'+ri);
               if (telEl) telEl.textContent = ct.telefone;
               if (emlEl) emlEl.textContent = ct.email;
               if (cpfEl) cpfEl.textContent = ct.cpf;
-              if (espEl) espEl.textContent = (ct.especialidades||[]).join(', ');
               if (macEl) macEl.textContent = (ct.macrorregioes||[]).join(' | ');
             }
           });
@@ -2239,7 +2274,15 @@ async function cfmIniciarContatos(dados) {
     } catch(e) {}
     done += lote.length;
     var svTel = document.getElementById('cfm-sv-tel');
-    if (svTel) svTel.textContent = comContato;
+    var pct = Math.round(done/total*100);
+    if (svTel) svTel.innerHTML = '<span style="color:var(--green)">'+comContato+'</span> <span class="spin" title="'+pct+'%"></span>';
+  }
+  // Finalizado — mostra ckSvg igual ao SisCNRM
+  var statTel = document.getElementById('cfm-stat-tel');
+  if (statTel) {
+    statTel.querySelector('.sv').innerHTML = '<span style="color:var(--green)">'+comContato+'</span> '+ckSvg('var(--green)');
+    document.getElementById('btn-cfm-st').classList.remove('hidden');
+    document.getElementById('btn-cfm-st').disabled = false;
   }
   cfmLog('', '');
 }
@@ -2296,19 +2339,17 @@ function cfmExportXL() {
 // ── Limpar aba CFM ────────────────────────────────────────────────────
 function cfmLimpar() {
   cfmRows=[]; cfmRowsView=[]; cfmContatoCache={};
-  cfmPaginaAtual=1; cfmTotalPaginas=1; cfmTotalRegistros=0;
+  cfmCidadesSel=[]; cfmEspSel=[];
+  cfmPaginaAtual=1; cfmTotalPaginas=1; cfmTotalRegistros=0; cfmCidadeAtual='';
   document.getElementById('cfm-res').classList.add('hidden');
   document.getElementById('cfm-log').style.display='none';
   document.getElementById('btn-cfm-limpar').style.display='none';
   document.getElementById('btn-cfm-xl').classList.add('hidden');
   document.getElementById('btn-cfm-st').classList.add('hidden');
-  var tkEl = document.getElementById('cfm-token'); tkEl.value=''; tkEl.dataset.token='';
-  var stEl = document.getElementById('cfm-token-status'); if(stEl) stEl.textContent='';
   document.getElementById('cfm-mun-input').value='';
-  document.getElementById('cfm-mun-id').value='';
-  document.getElementById('cfm-mun-nome').value='';
   document.getElementById('cfm-esp-input').value='';
-  document.getElementById('cfm-esp-id').value='';
+  var mt=document.getElementById('cfm-mun-tags'); if(mt) mt.innerHTML='';
+  var et=document.getElementById('cfm-esp-tags'); if(et) et.innerHTML='';
 }
 
 // ── Token CFM nas Configurações ──────────────────────────────────────
