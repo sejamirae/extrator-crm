@@ -273,7 +273,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 <!-- ── Navegação por abas ─────────────────────────────────────────────── -->
 <div style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 18px">
   <button id="tab-btn-siscnrm" onclick="trocarAba('siscnrm')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">SisCNRM</button>
-  <button id="tab-btn-cfm" onclick="trocarAba('cfm')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">CFM — Por Cidade</button>
+  <button id="tab-btn-cfm" onclick="trocarAba('cfm')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">CFM</button>
 </div>
 
 <!-- ── ABA SISCNRM ────────────────────────────────────────────────────── -->
@@ -361,7 +361,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 <div class="main">
 <div class="card">
 
-  <div class="sec">CFM — Busca por Cidade</div>
+  <div class="sec">CFM</div>
 
   <div class="g2" style="margin-bottom:10px">
     <div class="field" style="margin:0;position:relative">
@@ -415,7 +415,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <div style="display:flex;align-items:center;gap:6px">
       <span class="did-dot" id="cfm-dot"></span>
       <span class="sec" style="margin:0">Token CFM</span>
-      <span style="font-size:10px;color:var(--muted)" id="cfm-st">Não configurado — vá em Configurações</span>
+      <span style="font-size:10px;color:var(--muted)" id="cfm-st">Não configurado</span>
       <span id="cfm-banner-timer" style="font-size:10px;color:var(--green);font-weight:600;display:none"></span>
     </div>
   </div>
@@ -1716,6 +1716,44 @@ var _MENU = {
       ]
     },
     {
+      label: 'Usar a aba CFM (busca por cidade)',
+      msg: 'A aba CFM busca médicos registrados no Conselho Federal de Medicina por município, especialidade e situação. Os contatos são buscados automaticamente no DoctorID após a busca.',
+      opts: [
+        {
+          label: 'Como configurar o token CFM',
+          msg: 'O CFM exige um token de segurança (reCaptcha) para cada busca. Para obtê-lo: 1) Abra portal.cfm.org.br/busca-medicos em outra aba. 2) Vá em Configurações do extrator → seção "CFM — Token reCaptcha" → clique no código verde para copiá-lo. 3) Cole no Console do CFM (F12 → Console) e pressione Enter. 4) Faça qualquer busca no CFM. 5) Copie o texto que aparecer no Console e cole no campo de Configurações. 6) Clique Salvar — o contador regressivo mostra o tempo restante.',
+          opts: [
+            {label: 'Quanto tempo dura o token?', msg: 'Cerca de 2 minutos. O contador regressivo ao lado do indicador "Token CFM" mostra o tempo restante. Após expirar, gere um novo token seguindo o mesmo processo.', opts: []},
+            {label: 'O indicador ficou verde mas a busca deu erro', msg: 'O token pode ter expirado entre o salvamento e o clique em Buscar. Gere um novo token em Configurações e tente novamente.', opts: []}
+          ]
+        },
+        {
+          label: 'Buscar médicos em várias cidades ao mesmo tempo',
+          msg: 'Selecione a UF, depois comece a digitar o nome da cidade no campo Município — clique na sugestão para criar uma etiqueta. Repita para adicionar mais cidades. O sistema buscará em todas elas e exibirá os resultados juntos numa única tabela com a coluna Cidade identificando cada médico.',
+          opts: [
+            {label: 'Posso buscar em cidades de UFs diferentes?', msg: 'Por enquanto a busca é por UF — todas as cidades adicionadas devem ser da mesma UF selecionada. Para buscar em outro estado, faça uma nova busca trocando a UF.', opts: []}
+          ]
+        },
+        {
+          label: 'Filtrar por especialidade no CFM',
+          msg: 'Digite no campo Especialidade para filtrar — clique na sugestão para adicionar uma etiqueta. Você pode adicionar várias especialidades. Se deixar em branco, traz médicos de todas as especialidades da cidade selecionada.',
+          opts: [
+            {label: 'Vieram médicos de especialidades diferentes do filtro', msg: 'Isso pode acontecer porque o CFM retorna médicos que têm aquela especialidade entre outras. A coluna Especialidade CFM mostra todas as especialidades do médico — filtre a planilha exportada para refinar.', opts: []}
+          ]
+        },
+        {
+          label: 'O que vem na planilha do CFM',
+          msg: 'A planilha inclui: CRM, Nome, Cidade, UF, Especialidade CFM, Situação, Data de Inscrição, Telefone, Email, CPF e Macrorregião. Os campos de contato são preenchidos automaticamente pelo DoctorID se estiver configurado.',
+          opts: []
+        },
+        {
+          label: 'Diferença entre SisCNRM e CFM',
+          msg: 'SisCNRM = médicos com residência médica certificada pelo MEC — base menor mas com dados de formação e período. CFM = todos os médicos registrados no conselho, com filtro por cidade e especialidade — base muito maior, ideal para prospecção por região.',
+          opts: []
+        }
+      ]
+    },
+    {
       label: 'Outras funcionalidades',
       msg: 'O que você quer saber?',
       opts: [
@@ -2026,7 +2064,7 @@ function cfmRenderMunTags() {
   var c = document.getElementById('cfm-mun-tags');
   if (!c) return;
   c.innerHTML = cfmCidadesSel.map(function(m) {
-    return '<span class="tag" onclick="cfmRemoverMun(''+m.id+'')">'+m.nome+' ×</span>';
+    return '<span class="tag" onclick="cfmRemoverMun(&quot;'+m.id+'&quot;)">'+m.nome+' ×</span>';
   }).join('');
 }
 
@@ -2075,7 +2113,7 @@ function cfmRenderEspTags() {
   var c = document.getElementById('cfm-esp-tags');
   if (!c) return;
   c.innerHTML = cfmEspSel.map(function(e) {
-    return '<span class="tag" onclick="cfmRemoverEsp(''+e.id+'')">'+e.nome+' ×</span>';
+    return '<span class="tag" onclick="cfmRemoverEsp(&quot;'+e.id+'&quot;)">'+e.nome+' ×</span>';
   }).join('');
   if (!cfmEspSel.length) c.innerHTML = '';
 }
@@ -2100,7 +2138,7 @@ async function cfmBuscar() {
   var sit   = document.getElementById('cfm-sit').value;
   var tipo  = document.getElementById('cfm-tipo').value;
 
-  if (!token) { alert('Configure o token CFM em Configurações antes de buscar.'); return; }
+  if (!token) { alert('Configure o token CFM em Configurações.'); return; }
   if (!uf)    { alert('Selecione a UF.'); return; }
   if (!cfmCidadesSel.length) { alert('Adicione ao menos um município.'); return; }
 
@@ -2429,7 +2467,7 @@ function cfmIniciarContador() {
       var dot2 = document.getElementById('cfm-dot');
       if (dot2) dot2.classList.remove('on');
       var st2 = document.getElementById('cfm-st');
-      if (st2) st2.textContent = 'Token expirou — vá em Configurações';
+      if (st2) st2.textContent = 'Expirado';
       var msg = document.getElementById('cfg-cfm-msg');
       if (msg) msg.innerHTML = '<span style="color:var(--gold)">Token expirou — gere um novo</span>';
     }
@@ -2457,7 +2495,7 @@ function cfmAtualizarBanner() {
     if (timer) timer.style.display = '';
   } else {
     if (dot)   { dot.classList.remove('on'); }
-    if (st)    st.textContent = 'Não configurado — vá em Configurações';
+    if (st)    st.textContent = 'Não configurado';
     if (timer) timer.style.display = 'none';
   }
 }
