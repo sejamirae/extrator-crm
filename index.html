@@ -2006,7 +2006,11 @@ function trocarAba(aba) {
 
 
 
-function cfmLog(msg, tipo) {
+var _cfmLastLogTipo='', _cfmLastLogTime=0;
+function cfmLog(msg, tipo, force) {
+  var now = Date.now();
+  if (!force && _cfmLastLogTipo===tipo && now-_cfmLastLogTime < 2000) return;
+  _cfmLastLogTime = now; _cfmLastLogTipo = tipo||'';
   var el = document.getElementById('cfm-log');
   if (!el) return;
   el.textContent = msg;
@@ -2218,10 +2222,12 @@ async function cfmBuscar() {
 // ── Renderizar tabela ─────────────────────────────────────────────────
 function cfmRenderTabela(dados, cidade, total) {
   var pct = cfmTotalPaginas > 1 ? ' <span style="font-size:10px;color:var(--muted)">('+dados.length+'/'+total+')</span>' : '';
-  var comContato = Object.values(cfmContatoCache).filter(function(c){return c.telefone||c.email;}).length;
+  // Preserva stat de contatos se já existir
+  var _statTelExist = document.getElementById('cfm-stat-tel');
+  var _statTelHTML = _statTelExist ? _statTelExist.outerHTML : '';
   document.getElementById('cfm-stats').innerHTML =
     '<div class="stat"><div class="sv" id="cfm-sv-count">' + dados.length + (total > dados.length ? '<span style="font-size:10px;color:var(--muted)"> /'+total+'</span>' : '') + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
-    '<div class="stat" id="cfm-stat-tel"><div class="sv" id="cfm-sv-tel"><span style="color:var(--green)">' + comContato + '</span> <span class="spin" style="display:none" id="cfm-spin-tel"></span></div><div class="sl">Contatos</div></div>';
+    (_statTelHTML || '');
 
   document.getElementById('cfm-th').innerHTML =
     '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
@@ -2271,20 +2277,29 @@ async function cfmIniciarContatos(dados) {
   });
   if (!crmsU.length) return;
 
-  // Mostrar spin
-  var spinEl = document.getElementById('cfm-spin-tel');
-  if (spinEl) spinEl.style.display = '';
+  marcarInicio('cfm-contatos');
+  var statsEl = document.getElementById('cfm-stats');
+  document.querySelectorAll('#cfm-stat-tel').forEach(function(el){el.remove();});
+  var s = document.createElement('div'); s.className='stat'; s.id='cfm-stat-tel';
+  s.innerHTML = '<div class="sv" style="color:var(--green)">0 <span class="spin"></span></div><div class="sl">Contatos</div>';
+  statsEl.appendChild(s);
 
   var BULK = 8, total = crmsU.length, done = 0, comContato = 0;
+  var totalLotes = Math.ceil(total / BULK), loteNum = 0;
   for (var i = 0; i < crmsU.length; i += BULK) {
     var lote = crmsU.slice(i, i+BULK);
+    loteNum++;
+    if(loteNum===1) tempoRestante('cfm-contatos',1,totalLotes);
+    setLog('Contatos: ' + Math.round(loteNum/totalLotes*100) + '%' + tempoRestante('cfm-contatos', loteNum, totalLotes), 'i', loteNum <= 2);
     try {
       var p = new URLSearchParams({email:didEmail, senha:didSenha, crms:lote.join(',')});
       var r = await fetch(API+'/telefone_bulk?'+p.toString());
       var d = await r.json();
-      if (!d.error) {
+      if (d.error) {
+        lote.forEach(function(crm){if(!cfmContatoCache[crm])cfmContatoCache[crm]={telefone:'',email:'',cpf:'',especialidades:[],macrorregioes:[]};});
+      } else {
         Object.keys(d).forEach(function(crm) {
-          var info = d[crm];
+          var info = d[crm]||{};
           cfmContatoCache[crm] = {
             telefone: info.telefone||'', email: info.email||'',
             cpf: info.cpf||'', especialidades: info.especialidades||[],
@@ -2306,18 +2321,22 @@ async function cfmIniciarContatos(dados) {
           });
         });
       }
-    } catch(e) {}
+    } catch(e) {
+      lote.forEach(function(crm){if(!cfmContatoCache[crm])cfmContatoCache[crm]={telefone:'',email:'',cpf:'',especialidades:[],macrorregioes:[]};});
+    }
     done += lote.length;
-    var svTel = document.getElementById('cfm-sv-tel');
     var pct = Math.round(done/total*100);
-    if (svTel) svTel.innerHTML = '<span style="color:var(--green)">'+comContato+'</span> <span class="spin" title="'+pct+'%"></span>';
-  }
-  // Finalizado — mostra ckSvg igual ao SisCNRM
-  var statTel = document.getElementById('cfm-stat-tel');
-  if (statTel) {
-    statTel.querySelector('.sv').innerHTML = '<span style="color:var(--green)">'+comContato+'</span> '+ckSvg('var(--green)');
-    document.getElementById('btn-cfm-st').classList.remove('hidden');
-    document.getElementById('btn-cfm-st').disabled = false;
+    var statEl = document.getElementById('cfm-stat-tel');
+    if (statEl) {
+      if (done >= total) {
+        statEl.querySelector('.sv').innerHTML = '<span style="color:var(--green)">'+comContato+'</span> '+ckSvg('var(--green)');
+        document.getElementById('btn-cfm-st').classList.remove('hidden');
+        document.getElementById('btn-cfm-st').disabled = false;
+      } else {
+        statEl.querySelector('.sv').innerHTML = '<span style="color:var(--green)">'+comContato+'</span> <span class="spin" title="'+pct+'%"></span>';
+      }
+    }
+    if (done >= total) marcarFim('cfm-contatos');
   }
   cfmLog('', '');
 }
