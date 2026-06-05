@@ -2018,8 +2018,8 @@ function cfmLog(msg, tipo) {
 async function cfmCarregarMunicipios() {
   var uf = document.getElementById('cfm-uf').value;
   var inp = document.getElementById('cfm-mun-input');
-  document.getElementById('cfm-mun-id').value = '';
-  document.getElementById('cfm-mun-nome').value = '';
+  cfmCidadesSel = [];
+  cfmRenderMunTags();
   inp.value = '';
   inp.disabled = true;
   inp.placeholder = 'Carregando...';
@@ -2085,7 +2085,6 @@ function cfmFiltrarEspecialidades() {
   var q = document.getElementById('cfm-esp-input').value.toLowerCase().trim();
   var dd = document.getElementById('cfm-esp-dd');
   if (!q) {
-    document.getElementById('cfm-esp-id').value = '';
     dd.style.display = 'none';
     return;
   }
@@ -2368,7 +2367,7 @@ function cfmExportXL() {
   });
   var ws = XLSX.utils.json_to_sheet(enr, {header: HDR});
   XLSX.utils.book_append_sheet(wb, ws, 'Médicos CFM');
-  var cidade = document.getElementById('cfm-mun-nome').value || 'cfm';
+  var cidade = cfmCidadeAtual || 'cfm';
   XLSX.writeFile(wb, 'medicos_' + cidade.replace(/\s+/g,'_') + '_' + Date.now() + '.xlsx');
 }
 
