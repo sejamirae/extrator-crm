@@ -229,6 +229,28 @@ body.dark #login-screen input::placeholder{color:#606060}
   <span class="cfg-switch" id="cfg-switch-dark"><span class="cfg-knob"></span></span>
 </div>
 <div class="cfg-sep"></div>
+<div class="cfg-item-label">CFM — Token reCaptcha</div>
+<div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+  <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Passo a passo</label>
+  <div style="font-size:10px;color:var(--text);line-height:1.7;margin-bottom:8px">
+    1. Abra <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" style="color:var(--teal)">portal.cfm.org.br/busca-medicos</a><br>
+    2. F12 → Console → cole o código abaixo → Enter<br>
+    3. Faça qualquer busca no CFM<br>
+    4. Copie o texto verde que aparecer no Console<br>
+    5. Cole no campo abaixo e clique Salvar
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:5px 8px;font-family:monospace;font-size:9px;color:var(--teal);cursor:pointer;word-break:break-all;margin-bottom:8px" onclick="navigator.clipboard.writeText(this.textContent.trim()).then(()=>{this.style.background='var(--teal)';this.style.color='#fff';setTimeout(()=>{this.style.background='';this.style.color='var(--teal)';},800)})" title="Clique para copiar">const _x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(u&&u.includes('buscar_medicos')){const _s=this.send.bind(this);this.send=function(b){if(b){window.__cfmPayload=b;console.log('%c✓ Copie o texto abaixo e cole nas Configurações do extrator:','color:green;font-weight:bold');console.log(b);}return _s(b);};}return _x.apply(this,arguments);};</div>
+  <textarea id="cfg-cfm-payload" rows="2" placeholder='Cole o payload do Console aqui...' class="cfg-input" style="font-size:9px;font-family:monospace;resize:none;width:100%" oninput="cfmExtrairTokenCfg(this.value)"></textarea>
+  <div id="cfg-cfm-status" style="font-size:10px;margin-top:4px;display:flex;align-items:center;gap:8px">
+    <span id="cfg-cfm-msg" style="color:var(--muted)">Nenhum token salvo</span>
+    <span id="cfg-cfm-timer" style="color:var(--gold);font-weight:600;display:none"></span>
+  </div>
+</div>
+<div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
+  <button class="btn btn-p" style="font-size:11px;padding:6px 14px" onclick="salvarCfmToken()">Salvar Token</button>
+  <button class="btn btn-o" style="font-size:11px;padding:6px 14px" onclick="limparCfmToken()">Limpar</button>
+</div>
+<div class="cfg-sep"></div>
 <div class="cfg-item-label">DoctorID</div>
 <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
   <label style="display:block;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">Email</label>
@@ -341,19 +363,10 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <div class="sec">CFM — Busca por Cidade</div>
 
-  <!-- Token reCaptcha -->
-  <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:3px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--text);line-height:1.7">
-    <strong style="display:block;margin-bottom:4px">Como obter o token — 3 passos:</strong>
-    1. Abra <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" style="color:var(--teal)">portal.cfm.org.br/busca-medicos</a> em outra aba<br>
-    2. Cole o código abaixo no Console (F12 → Console) e pressione Enter — ele instala um interceptador:
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:6px 10px;margin:6px 0;font-family:monospace;font-size:10px;user-select:all;cursor:pointer;color:var(--teal)" onclick="navigator.clipboard.writeText(this.textContent.trim()).then(()=>{this.style.background='var(--teal)';this.style.color='#fff';setTimeout(()=>{this.style.background='';this.style.color='var(--teal)';},800)})" title="Clique para copiar">const _x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(u&&u.includes('buscar_medicos')){const _s=this.send.bind(this);this.send=function(b){if(b){window.__cfmPayload=b;console.log('%c✓ Token capturado! Cole no extrator:','color:green;font-weight:bold');console.log(b);}return _s(b);};}return _x.apply(this,arguments);};</div>
-    3. Faça qualquer busca no site do CFM → volte ao Console → copie o texto que apareceu → cole no campo abaixo
-  </div>
-
-  <div class="field" style="margin-bottom:10px">
-    <label>Payload do CFM <span style="color:var(--muted);font-weight:400">(cole o conteúdo completo do Payload)</span></label>
-    <textarea id="cfm-token" rows="3" placeholder='Cole aqui o payload copiado do DevTools, ex: [{"useCaptchav2":true,"captcha":"0cAFc...","medico":{...}}]' style="font-size:10px;font-family:monospace;width:100%;resize:vertical;padding:6px 8px;border:1px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);font-family:monospace" oninput="cfmExtrairToken(this.value)"></textarea>
-    <div id="cfm-token-status" style="font-size:10px;color:var(--muted);margin-top:3px"></div>
+  <!-- Status token -->
+  <div id="cfm-token-banner" style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--muted);border-radius:3px;padding:8px 12px;margin-bottom:14px;font-size:11px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <span id="cfm-banner-msg" style="color:var(--muted)">⚠ Nenhum token CFM salvo — vá em Configurações para gerar</span>
+    <span id="cfm-banner-timer" style="color:var(--gold);font-weight:600;white-space:nowrap;display:none"></span>
   </div>
 
   <div class="g3" style="margin-bottom:12px">
@@ -1925,6 +1938,7 @@ var cfmEspecialidades = [];  // [{ID_ESPECIALIDADE, DS_ESPECIALIDADE}]
 var cfmRows = [];
 var cfmRowsView = [];
 var cfmContatoCache = {};
+var cfmCidadeAtual = '';
 var cfmSemTelOn = false;
 var cfmPaginaAtual = 1;
 var cfmTotalPaginas = 1;
@@ -1945,38 +1959,9 @@ function trocarAba(aba) {
   if (aba === 'cfm' && cfmEspecialidades.length === 0) cfmCarregarEspecialidades();
 }
 
-function cfmExtrairToken(val) {
-  var status = document.getElementById('cfm-token-status');
-  if (!val.trim()) { if(status) status.textContent=''; return; }
-  try {
-    // Tenta parsear como JSON array (payload completo)
-    var parsed = JSON.parse(val.trim());
-    var token = '';
-    if (Array.isArray(parsed) && parsed[0] && parsed[0].captcha) {
-      token = parsed[0].captcha;
-    } else if (parsed.captcha) {
-      token = parsed.captcha;
-    }
-    if (token) {
-      document.getElementById('cfm-token').dataset.token = token;
-      if (status) status.innerHTML = '<span style="color:var(--green)">✓ Token extraído com sucesso (' + token.length + ' chars)</span>';
-    } else {
-      // Pode ser que colou só o token direto
-      document.getElementById('cfm-token').dataset.token = val.trim();
-      if (status) status.innerHTML = '<span style="color:var(--gold)">⚠ Usando valor diretamente como token</span>';
-    }
-  } catch(e) {
-    // Não é JSON — assume que é o token direto
-    document.getElementById('cfm-token').dataset.token = val.trim();
-    if (status) status.innerHTML = '<span style="color:var(--gold)">⚠ Usando valor diretamente como token</span>';
-  }
-}
 
-function cfmGetToken() {
-  var el = document.getElementById('cfm-token');
-  // Prefere o token extraído do dataset, senão usa o valor bruto
-  return (el.dataset.token || el.value || '').trim();
-}
+
+
 
 function cfmLog(msg, tipo) {
   var el = document.getElementById('cfm-log');
@@ -2087,6 +2072,7 @@ async function cfmBuscar() {
   if (!munId) { alert('Selecione um município.'); return; }
 
   cfmRows = []; cfmContatoCache = {};
+  cfmCidadeAtual = document.getElementById('cfm-mun-nome').value;
   document.getElementById('btn-cfm-buscar').disabled = true;
   document.getElementById('sp-cfm').classList.remove('hidden');
   document.getElementById('btn-cfm-limpar').style.display = '';
@@ -2165,22 +2151,25 @@ function cfmRenderTabela(dados, cidade, total) {
     '<div class="stat" id="cfm-stat-tel"><div class="sv" style="color:var(--green)" id="cfm-sv-tel">' + comContato + '</div><div class="sl">Contatos</div></div>';
 
   document.getElementById('cfm-th').innerHTML =
-    '<th>CRM</th><th>Nome</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Especialidade DID</th><th>Macrorregião</th>';
+    '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
 
   document.getElementById('cfm-tb').innerHTML = dados.map(function(r, i) {
     var crm = r.NU_CRM || '';
     var ct  = cfmContatoCache[crm] || {};
-    var esp = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^,]*/g,'').trim();
+    var espCfm = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').replace(/\([^)]*\)/g,'').trim();
     var sit = r.SITUACAO === 'Regular' ? '<span style="color:var(--green)">Regular</span>' : '<span style="color:var(--muted)">'+(r.SITUACAO||'')+'</span>';
+    var cidade = cfmCidadeAtual || '';
+    var uf = r.SG_UF || '';
     return '<tr>' +
-      '<td style="white-space:nowrap;font-weight:600">' + crm + '/SP</td>' +
+      '<td style="white-space:nowrap;font-weight:600">' + crm + '/' + uf + '</td>' +
       '<td>' + (r.NM_MEDICO||'') + '</td>' +
-      '<td style="font-size:11px">' + esp + '</td>' +
+      '<td style="white-space:nowrap">' + cidade + '</td>' +
+      '<td>' + uf + '</td>' +
+      '<td style="font-size:11px">' + espCfm + '</td>' +
       '<td>' + sit + '</td>' +
       '<td id="cfm-tel-'+i+'">' + (ct.telefone||'') + '</td>' +
       '<td id="cfm-eml-'+i+'" style="font-size:11px">' + (ct.email||'') + '</td>' +
       '<td id="cfm-cpf-'+i+'" style="font-size:11px;white-space:nowrap">' + (ct.cpf||'') + '</td>' +
-      '<td id="cfm-esp-'+i+'" style="font-size:11px">' + ((ct.especialidades||[]).join(', ')) + '</td>' +
       '<td id="cfm-mac-'+i+'" style="font-size:11px">' + ((ct.macrorregioes||[]).join(' | ')) + '</td>' +
       '</tr>';
   }).join('');
@@ -2259,8 +2248,8 @@ function cfmToggleSemTel() {
   if (btn) btn.classList.toggle('on', cfmSemTelOn);
   cfmRowsView = cfmSemTelOn
     ? cfmRows.filter(function(r) { var ct=cfmContatoCache[r.NU_CRM||'']; return ct&&(ct.telefone||ct.email); })
-    : cfmRows;
-  cfmRenderTabela(cfmRowsView, document.getElementById('cfm-mun-nome').value, cfmTotalRegistros);
+    : cfmRows.slice();
+  cfmRenderTabela(cfmRowsView.length ? cfmRowsView : cfmRows, cfmCidadeAtual, cfmTotalRegistros);
 }
 
 // ── Export XLSX ───────────────────────────────────────────────────────
@@ -2274,22 +2263,24 @@ function cfmExportXL() {
   }
   var dados = (cfmRowsView.length ? cfmRowsView : cfmRows);
   if (!dados.length) return;
-  var HDR = ['CRM','Nome','Especialidade CFM','Situação','Data Inscrição','Telefone','Email','CPF','Especialidade DID','Macrorregião'];
+  var HDR = ['CRM','Nome','Cidade','UF','Especialidade CFM','Situação','Data Inscrição','Telefone','Email','CPF','Macrorregião'];
   var wb = XLSX.utils.book_new();
   var enr = dados.map(function(r) {
     var crm = r.NU_CRM||'';
     var ct  = cfmContatoCache[crm]||{};
     var esp = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^,]*/g,'').trim();
     var obj = {};
+    var espXL = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').trim();
     obj['CRM']             = crm + '/' + (r.SG_UF||'');
     obj['Nome']            = r.NM_MEDICO||'';
-    obj['Especialidade CFM'] = esp;
+    obj['Cidade']          = cfmCidadeAtual||'';
+    obj['UF']              = r.SG_UF||'';
+    obj['Especialidade CFM'] = espXL;
     obj['Situação']        = r.SITUACAO||'';
     obj['Data Inscrição']  = r.DT_INSCRICAO||'';
     obj['Telefone']        = ct.telefone||'';
     obj['Email']           = ct.email||'';
     obj['CPF']             = ct.cpf||'';
-    obj['Especialidade DID'] = (ct.especialidades||[]).join(', ');
     obj['Macrorregião']    = (ct.macrorregioes||[]).join(' | ');
     return obj;
   });
@@ -2316,6 +2307,134 @@ function cfmLimpar() {
   document.getElementById('cfm-esp-input').value='';
   document.getElementById('cfm-esp-id').value='';
 }
+
+// ── Token CFM nas Configurações ──────────────────────────────────────
+var _cfmTokenGlobal = '';
+var _cfmTimerInterval = null;
+var _cfmTokenExpiry = 0;
+
+function cfmExtrairTokenCfg(val) {
+  var msg = document.getElementById('cfg-cfm-msg');
+  if (!val.trim()) { if(msg) msg.textContent = 'Nenhum token salvo'; return; }
+  try {
+    var parsed = JSON.parse(val.trim());
+    var token = Array.isArray(parsed) ? (parsed[0]&&parsed[0].captcha) : parsed.captcha;
+    if (token) {
+      document.getElementById('cfg-cfm-payload').dataset.token = token;
+      if (msg) msg.innerHTML = '<span style="color:var(--green)">✓ Token extraído (' + token.length + ' chars) — clique Salvar</span>';
+    }
+  } catch(e) {
+    // token direto
+    document.getElementById('cfg-cfm-payload').dataset.token = val.trim();
+    if (msg) msg.innerHTML = '<span style="color:var(--gold)">Token colado diretamente — clique Salvar</span>';
+  }
+}
+
+function salvarCfmToken() {
+  var el = document.getElementById('cfg-cfm-payload');
+  var token = el.dataset.token || el.value.trim();
+  if (!token) return;
+  // Extrai do payload se necessário
+  try {
+    var p = JSON.parse(token);
+    if (Array.isArray(p) && p[0] && p[0].captcha) token = p[0].captcha;
+  } catch(e) {}
+  _cfmTokenGlobal = token;
+  _cfmTokenExpiry = Date.now() + 110000; // ~1min50s
+  localStorage.setItem('cfm_token', token);
+  localStorage.setItem('cfm_token_expiry', _cfmTokenExpiry);
+  cfmAtualizarStatusToken();
+  cfmIniciarContador();
+  // Atualiza banner na aba CFM
+  cfmAtualizarBanner();
+  var msg = document.getElementById('cfg-cfm-msg');
+  if (msg) msg.innerHTML = '<span style="color:var(--green)">✓ Token salvo!</span>';
+}
+
+function limparCfmToken() {
+  _cfmTokenGlobal = '';
+  _cfmTokenExpiry = 0;
+  localStorage.removeItem('cfm_token');
+  localStorage.removeItem('cfm_token_expiry');
+  clearInterval(_cfmTimerInterval);
+  var msg = document.getElementById('cfg-cfm-msg');
+  if (msg) msg.textContent = 'Token removido';
+  var timer = document.getElementById('cfg-cfm-timer');
+  if (timer) timer.style.display = 'none';
+  cfmAtualizarBanner();
+}
+
+function cfmIniciarContador() {
+  clearInterval(_cfmTimerInterval);
+  _cfmTimerInterval = setInterval(function() {
+    var restante = Math.max(0, Math.floor((_cfmTokenExpiry - Date.now()) / 1000));
+    var timerCfg = document.getElementById('cfg-cfm-timer');
+    var timerBanner = document.getElementById('cfm-banner-timer');
+    var min = Math.floor(restante / 60);
+    var seg = restante % 60;
+    var texto = min + ':' + (seg < 10 ? '0' : '') + seg;
+    if (timerCfg) { timerCfg.textContent = texto; timerCfg.style.display = restante > 0 ? '' : 'none'; }
+    if (timerBanner) { timerBanner.textContent = texto; timerBanner.style.display = restante > 0 ? '' : 'none'; }
+    if (restante === 0) {
+      clearInterval(_cfmTimerInterval);
+      _cfmTokenGlobal = '';
+      cfmAtualizarBanner();
+      var msg = document.getElementById('cfg-cfm-msg');
+      if (msg) msg.innerHTML = '<span style="color:var(--gold)">Token expirou — gere um novo</span>';
+    }
+  }, 1000);
+}
+
+function cfmAtualizarStatusToken() {
+  var restante = Math.max(0, Math.floor((_cfmTokenExpiry - Date.now()) / 1000));
+  var timer = document.getElementById('cfg-cfm-timer');
+  var msg = document.getElementById('cfg-cfm-msg');
+  if (restante > 0) {
+    if (timer) timer.style.display = '';
+    if (msg) msg.innerHTML = '<span style="color:var(--green)">✓ Token ativo</span>';
+  }
+}
+
+function cfmAtualizarBanner() {
+  var banner = document.getElementById('cfm-token-banner');
+  var bannerMsg = document.getElementById('cfm-banner-msg');
+  var bannerTimer = document.getElementById('cfm-banner-timer');
+  var restante = Math.max(0, Math.floor((_cfmTokenExpiry - Date.now()) / 1000));
+  if (!banner) return;
+  if (_cfmTokenGlobal && restante > 0) {
+    banner.style.borderLeftColor = 'var(--green)';
+    if (bannerMsg) bannerMsg.innerHTML = '<span style="color:var(--green)">✓ Token CFM ativo</span>';
+    if (bannerTimer) bannerTimer.style.display = '';
+  } else {
+    banner.style.borderLeftColor = 'var(--gold)';
+    if (bannerMsg) bannerMsg.innerHTML = '<span style="color:var(--gold)">⚠ Token expirado ou não configurado — vá em Configurações</span>';
+    if (bannerTimer) bannerTimer.style.display = 'none';
+  }
+}
+
+function cfmGetToken() {
+  // Tenta localStorage primeiro
+  var stored = localStorage.getItem('cfm_token');
+  var expiry  = parseInt(localStorage.getItem('cfm_token_expiry') || '0');
+  if (stored && Date.now() < expiry) {
+    _cfmTokenGlobal = stored;
+    _cfmTokenExpiry = expiry;
+    return stored;
+  }
+  return _cfmTokenGlobal || '';
+}
+
+// Inicializa token salvo ao carregar
+(function() {
+  var stored = localStorage.getItem('cfm_token');
+  var expiry  = parseInt(localStorage.getItem('cfm_token_expiry') || '0');
+  if (stored && Date.now() < expiry) {
+    _cfmTokenGlobal = stored;
+    _cfmTokenExpiry = expiry;
+    cfmIniciarContador();
+    cfmAtualizarStatusToken();
+  }
+})();
 
 // Função legada mantida para compatibilidade
 function enviarChat() {}
