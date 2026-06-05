@@ -343,10 +343,11 @@ body.dark #login-screen input::placeholder{color:#606060}
 
   <!-- Token reCaptcha -->
   <div style="background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:3px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--text);line-height:1.7">
-    <strong style="display:block;margin-bottom:4px">Como usar:</strong>
+    <strong style="display:block;margin-bottom:4px">Como obter o token — 3 passos:</strong>
     1. Abra <a href="https://portal.cfm.org.br/busca-medicos/" target="_blank" style="color:var(--teal)">portal.cfm.org.br/busca-medicos</a> em outra aba<br>
-    2. Faça qualquer busca lá → F12 → Network → clique em <code>buscar_medicos</code> → aba <strong>Payload</strong><br>
-    3. Selecione tudo (<kbd>Ctrl+A</kbd>), copie e cole o conteúdo inteiro abaixo — o extrator extrai o token automaticamente
+    2. Cole o código abaixo no Console (F12 → Console) e pressione Enter — ele instala um interceptador:
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:6px 10px;margin:6px 0;font-family:monospace;font-size:10px;user-select:all;cursor:pointer;color:var(--teal)" onclick="navigator.clipboard.writeText(this.textContent.trim()).then(()=>{this.style.background='var(--teal)';this.style.color='#fff';setTimeout(()=>{this.style.background='';this.style.color='var(--teal)';},800)})" title="Clique para copiar">const _f=window.fetch;window.fetch=function(){const a=[...arguments];if(a[0]&&a[0].includes('buscar_medicos')){const b=a[1]?.body;if(b){window.__cfmPayload=b;console.log('%c✓ Token capturado! Copie o valor abaixo:','color:green;font-weight:bold');console.log(b);}}return _f.apply(this,a);};</div>
+    3. Faça qualquer busca no site do CFM → volte ao Console → copie o texto que apareceu → cole no campo abaixo
   </div>
 
   <div class="field" style="margin-bottom:10px">
