@@ -821,7 +821,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       if(!colsInicializadas){
         // Inicializa tabela com primeiros resultados
         var cols=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
-        var colsEx=cols.concat(['Telefone','Email']);
+        var colsEx=cols.concat(['Telefone','Email','CPF','Especialidade DID','Macrorregião']);
         document.getElementById('stats').innerHTML=
           '<div class="stat"><div class="sv" id="sv-count">'+todos.length+'</div><div class="sl">Certificados</div></div>';
         document.getElementById('th').innerHTML=colsEx.map(function(c){return '<th>'+lbl(c)+'</th>';}).join('');
@@ -833,7 +833,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       // Acrescenta novas linhas
       var tb=document.getElementById('tb');
       var cols2=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
-      var colsEx2=cols2.concat(['Telefone','Email']);
+      var colsEx2=cols2.concat(['Telefone','Email','CPF','Especialidade DID','Macrorregião']);
       var offset=todos.length-novos.length;
       novos.forEach(function(row,j){
         var i2=offset+j;
@@ -842,6 +842,9 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
           if(c==='CRM') return '<td style="white-space:nowrap"><span id="b-'+i2+'"></span>'+crm2+'</td>';
           if(c==='Telefone') return '<td id="tel-'+i2+'"></td>';
           if(c==='Email') return '<td id="eml-'+i2+'" style="font-size:11px"></td>';
+          if(c==='CPF') return '<td id="cpf-'+i2+'" style="font-size:11px;white-space:nowrap"></td>';
+          if(c==='Especialidade DID') return '<td id="esp-'+i2+'" style="font-size:11px"></td>';
+          if(c==='Macrorregião') return '<td id="mac-'+i2+'" style="font-size:11px"></td>';
           return '<td>'+(row[c]||'')+'</td>';
         });
         var tr=document.createElement('tr');
@@ -935,7 +938,7 @@ function tempoRestante(chave, feitos, total){
 function renderTabela(d,instNm,progNm){
   rowsOrig=d.slice(); rowsView=d.slice();
   var cols=COLS.filter(function(c){return d[0]&&(c in d[0]);});
-  var colsEx=cols.concat(['Telefone','Email']);
+  var colsEx=cols.concat(['Telefone','Email','CPF','Especialidade DID','Macrorregião']);
 
   // Stats: instituição/programa antes do count
   var statsHtml='';
@@ -956,7 +959,7 @@ function renderLinhas(d,colsEx){
   if(!colsEx){
     var src=rowsOrig.length?rowsOrig:d;
     var cols=COLS.filter(function(c){return src[0]&&(c in src[0]);});
-    colsEx=cols.concat(['Telefone','Email']);
+    colsEx=cols.concat(['Telefone','Email','CPF','Especialidade DID','Macrorregião']);
   }
   document.getElementById('tb').innerHTML=d.map(function(r,i){
     var crm=r['CRM']||'';
@@ -965,6 +968,9 @@ function renderLinhas(d,colsEx){
       if(c==='CRM') return '<td style="white-space:nowrap"><span id="b-'+i+'" data-crm="'+crm+'"></span>'+crm+'</td>';
       if(c==='Telefone') return '<td id="tel-'+i+'">'+(cache.telefone||'')+'</td>';
       if(c==='Email') return '<td id="eml-'+i+'" style="font-size:11px">'+(cache.email||'')+'</td>';
+      if(c==='CPF') return '<td id="cpf-'+i+'" style="font-size:11px;white-space:nowrap">'+(cache.cpf||'')+'</td>';
+      if(c==='Especialidade DID') return '<td id="esp-'+i+'" style="font-size:11px">'+(cache.especialidades||[]).join(', ')+'</td>';
+      if(c==='Macrorregião') return '<td id="mac-'+i+'" style="font-size:11px">'+(cache.macrorregioes||[]).join(' | ')+'</td>';
       return '<td>'+(r[c]||'')+'</td>';
     });
     return '<tr>'+tds.join('')+'</tr>';
@@ -975,7 +981,7 @@ function atualizarView(d){
   rowsView=d.slice();
   var src=rowsOrig.length?rowsOrig:d;
   var cols=COLS.filter(function(c){return src[0]&&(c in src[0]);});
-  renderLinhas(d,cols.concat(['Telefone','Email']));
+  renderLinhas(d,cols.concat(['Telefone','Email','CPF','Especialidade DID','Macrorregião']));
   d.forEach(function(r,i){var crm=r['CRM']||'';if(crmMulti[crm])colocarBadge(crm,[i],crmMulti[crm]);});
   // Atualiza APENAS o contador de certificados, sem tocar nos outros stats
   var sv=document.getElementById('sv-count');
@@ -1107,13 +1113,25 @@ async function iniciarContatos(d){
       } else {
         Object.keys(data).forEach(function(crm){
           var info=data[crm]||{};
-          contatoCache[crm]={telefone:info.telefone||'',email:info.email||''};
+          contatoCache[crm]={
+            telefone:info.telefone||'',
+            email:info.email||'',
+            cpf:info.cpf||'',
+            especialidades:info.especialidades||[],
+            macrorregioes:info.macrorregioes||[]
+          };
           rows.forEach(function(row,ri){
             if((row['CRM']||'')===crm){
               var tel=document.getElementById('tel-'+ri);
               var eml=document.getElementById('eml-'+ri);
+              var cpfEl=document.getElementById('cpf-'+ri);
+              var espEl=document.getElementById('esp-'+ri);
+              var macEl=document.getElementById('mac-'+ri);
               if(tel) tel.textContent=contatoCache[crm].telefone;
               if(eml) eml.textContent=contatoCache[crm].email;
+              if(cpfEl) cpfEl.textContent=contatoCache[crm].cpf||'';
+              if(espEl) espEl.textContent=(contatoCache[crm].especialidades||[]).join(', ');
+              if(macEl) macEl.textContent=(contatoCache[crm].macrorregioes||[]).join(' | ');
             }
           });
         });
@@ -1122,7 +1140,7 @@ async function iniciarContatos(d){
       lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:''};});
     }
     telDone+=lote.length;
-    var com=Object.values(contatoCache).filter(function(c){return c.telefone||c.email;}).length;
+    var com=Object.values(contatoCache).filter(function(c){return c.telefone||c.email||c.cpf;}).length;
     var pct=Math.round(telDone/telTotal*100);
     var statEl=document.getElementById('stat-tel');
     if(statEl){
@@ -1220,7 +1238,7 @@ function exportXL(){
 }
 function _xl(){
   var wb=XLSX.utils.book_new();
-  var HDR=['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais','Múltiplas Formações','Total Certificações','Telefone','Email'];
+  var HDR=['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais','Múltiplas Formações','Total Certificações','Telefone','Email','CPF','Especialidade DID','Macrorregião'];
   var dados=rowsView.length?rowsView:rows;
   var enr=dados.map(function(r){
     var crm=r['CRM']||'';var total=crmMulti[crm]||1;var ct=contatoCache[crm]||{};
@@ -1230,6 +1248,9 @@ function _xl(){
       else if(col==='Total Certificações') obj[col]=total;
       else if(col==='Telefone') obj[col]=ct.telefone||'';
       else if(col==='Email') obj[col]=ct.email||'';
+      else if(col==='CPF') obj[col]=ct.cpf||'';
+      else if(col==='Especialidade DID') obj[col]=(ct.especialidades||[]).join(', ');
+      else if(col==='Macrorregião') obj[col]=(ct.macrorregioes||[]).join(' | ');
       else obj[col]=r[col]||'';
     });
     return obj;
