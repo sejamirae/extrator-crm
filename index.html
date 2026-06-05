@@ -1020,8 +1020,10 @@ function cfmMarcarFim(proc){
   _processosCfm[proc]=false;
   var algumAtivo=Object.values(_processosCfm).some(function(v){return v;});
   if(!algumAtivo){
-    document.getElementById('btn-cfm-xl').classList.remove('hidden');
-    document.getElementById('btn-cfm-xl').disabled=false;
+    if (cfmRows.length > 0) {
+      document.getElementById('btn-cfm-xl').classList.remove('hidden');
+      document.getElementById('btn-cfm-xl').disabled=false;
+    }
     pararFaviconLoader();
     cfmLog('','',true);
   }
@@ -2168,6 +2170,7 @@ async function cfmBuscar() {
 
   cfmRows = []; cfmContatoCache = {};
   cfmCidadeAtual = cfmCidadesSel.map(function(c){return c.nome;}).join(', ');
+  _processosCfm = {busca: false, contatos: false};
   cfmMarcarInicio('busca');
   document.getElementById('btn-cfm-xl').classList.add('hidden');
   document.getElementById('btn-cfm-xl').disabled = true;
@@ -2195,8 +2198,15 @@ async function cfmBuscar() {
     } catch(e) { cfmLog('Erro de rede: '+e.message,''); break; }
 
     if (d1.status !== 'sucesso') {
-      cfmLog(prefixo+'Token inválido ou expirado — gere um novo em Configurações.','');
-      break;
+      if (d1.message && d1.message.toLowerCase().includes('recaptcha')) {
+        cfmLog('Token reCaptcha inválido ou expirado. Gere um novo em Configurações.', '');
+      } else {
+        cfmLog('Erro CFM: ' + (d1.message || d1.status || 'resposta inválida'), '');
+      }
+      cfmMarcarFim('busca');
+      document.getElementById('btn-cfm-buscar').disabled = false;
+      document.getElementById('sp-cfm').classList.add('hidden');
+      return;
     }
     var dados1 = d1.dados || [];
     var total  = dados1.length > 0 ? parseInt(dados1[0].COUNT||dados1.length) : 0;
