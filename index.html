@@ -2243,9 +2243,14 @@ async function cfmBuscar() {
 
   document.getElementById('btn-cfm-buscar').disabled = false;
   document.getElementById('sp-cfm').classList.add('hidden');
-  cfmMarcarFim('busca');
   cfmLog('', '');
-  if (didEmail && didSenha) cfmIniciarContatos(cfmRows);
+  if (didEmail && didSenha && cfmRows.length > 0) {
+    cfmMarcarInicio('contatos');
+    cfmMarcarFim('busca');
+    cfmIniciarContatos(cfmRows);
+  } else {
+    cfmMarcarFim('busca');
+  }
 }
 
 // ── Renderizar tabela ─────────────────────────────────────────────────
@@ -2300,7 +2305,6 @@ async function cfmIniciarContatos(dados) {
   });
   if (!crmsU.length) return;
 
-  cfmMarcarInicio('contatos');
   var statsEl = document.getElementById('cfm-stats');
   document.querySelectorAll('#cfm-stat-tel').forEach(function(el){el.remove();});
   var s = document.createElement('div'); s.className='stat'; s.id='cfm-stat-tel';
