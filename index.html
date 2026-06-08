@@ -2262,9 +2262,19 @@ async function cfmBuscar() {
 // ── Renderizar tabela ─────────────────────────────────────────────────
 function cfmRenderTabela(dados, cidade, total) {
   var pct = cfmTotalPaginas > 1 ? ' <span style="font-size:10px;color:var(--muted)">('+dados.length+'/'+total+')</span>' : '';
-  // Preserva stat de contatos se já existir
+  // Stat de contatos: durante o enriquecimento, preserva o contador ao vivo
+  // (spinner/progresso). Depois, reflete os contatos do conjunto visível,
+  // acompanhando os filtros ativos.
   var _statTelExist = document.getElementById('cfm-stat-tel');
-  var _statTelHTML = _statTelExist ? _statTelExist.outerHTML : '';
+  var _statTelHTML = '';
+  if (_statTelExist) {
+    if (_processosCfm.contatos) {
+      _statTelHTML = _statTelExist.outerHTML;
+    } else {
+      var _visCt = dados.filter(function(r){ var ct=cfmContatoCache[r.NU_CRM||'']; return ct&&(ct.telefone||ct.email); }).length;
+      _statTelHTML = '<div class="stat" id="cfm-stat-tel"><div class="sv"><span style="color:var(--green)">'+_visCt+'</span> '+ckSvg('var(--green)')+'</div><div class="sl">Contatos</div></div>';
+    }
+  }
   document.getElementById('cfm-stats').innerHTML =
     '<div class="stat"><div class="sv" id="cfm-sv-count">' + dados.length + (total > dados.length ? '<span style="font-size:10px;color:var(--muted)"> /'+total+'</span>' : '') + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
     (_statTelHTML || '');
