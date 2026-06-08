@@ -428,6 +428,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="btn btn-o" id="btn-cfm-limpar" onclick="cfmLimpar()" style="display:none">Nova busca</button>
     <button class="btn btn-g hidden" id="btn-cfm-xl" onclick="cfmExportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-cfm-st" onclick="cfmToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
+    <button class="tog hidden" id="btn-cfm-sesp" onclick="cfmToggleSemEsp()" disabled><span class="track"></span>Apenas sem especialidade</button>
   </div>
 </div>
 
@@ -1022,6 +1023,8 @@ function cfmMarcarFim(proc){
     if (cfmRows.length > 0) {
       document.getElementById('btn-cfm-xl').classList.remove('hidden');
       document.getElementById('btn-cfm-xl').disabled=false;
+      var _bse=document.getElementById('btn-cfm-sesp');
+      if(_bse){ _bse.classList.remove('hidden'); _bse.disabled=false; }
     }
     pararFaviconLoader();
     cfmLog('','',true);
@@ -1998,6 +2001,7 @@ var cfmRowsView = [];
 var cfmContatoCache = {};
 var cfmCidadeAtual = '';
 var cfmSemTelOn = false;
+var cfmSemEspOn = false;
 var cfmPaginaAtual = 1;
 var cfmTotalPaginas = 1;
 var cfmTotalRegistros = 0;
@@ -2174,6 +2178,9 @@ async function cfmBuscar() {
   document.getElementById('btn-cfm-xl').classList.add('hidden');
   document.getElementById('btn-cfm-xl').disabled = true;
   document.getElementById('btn-cfm-st').classList.add('hidden');
+  cfmSemTelOn=false; cfmSemEspOn=false; cfmRowsView=[];
+  var _bseB=document.getElementById('btn-cfm-st'); if(_bseB) _bseB.classList.remove('on');
+  var _bseE=document.getElementById('btn-cfm-sesp'); if(_bseE){ _bseE.classList.add('hidden'); _bseE.classList.remove('on'); _bseE.disabled=true; }
   document.getElementById('btn-cfm-buscar').disabled = true;
   document.getElementById('sp-cfm').classList.remove('hidden');
   document.getElementById('btn-cfm-limpar').style.display = '';
@@ -2263,12 +2270,13 @@ function cfmRenderTabela(dados, cidade, total) {
     (_statTelHTML || '');
 
   document.getElementById('cfm-th').innerHTML =
-    '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
+    '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Especialidades/Áreas</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
 
   document.getElementById('cfm-tb').innerHTML = dados.map(function(r, i) {
     var crm = r.NU_CRM || '';
     var ct  = cfmContatoCache[crm] || {};
     var espCfm = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').replace(/\([^)]*\)/g,'').trim();
+    var espRaw = (r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()) ? r.ESPECIALIDADE : 'Médico sem especialidade registrada';
     var sit = r.SITUACAO === 'Regular' ? '<span style="color:var(--green)">Regular</span>' : '<span style="color:var(--muted)">'+(r.SITUACAO||'')+'</span>';
     var cidade = r._cidade || cfmCidadeAtual || '';
     var uf = r.SG_UF || '';
@@ -2278,6 +2286,7 @@ function cfmRenderTabela(dados, cidade, total) {
       '<td style="white-space:nowrap">' + cidade + '</td>' +
       '<td>' + uf + '</td>' +
       '<td style="font-size:11px">' + espCfm + '</td>' +
+      '<td style="font-size:11px">' + espRaw + '</td>' +
       '<td>' + sit + '</td>' +
       '<td id="cfm-tel-'+i+'">' + (ct.telefone||'') + '</td>' +
       '<td id="cfm-eml-'+i+'" style="font-size:11px">' + (ct.email||'') + '</td>' +
@@ -2367,15 +2376,41 @@ async function cfmIniciarContatos(dados) {
   cfmLog('', '');
 }
 
-// ── Toggle sem telefone ───────────────────────────────────────────────
+// ── Toggles de filtro (compõem entre si) ──────────────────────────────
+function cfmTemFiltroAtivo() { return cfmSemTelOn || cfmSemEspOn; }
+
+function cfmDadosVisiveis() {
+  return cfmTemFiltroAtivo() ? cfmRowsView : cfmRows;
+}
+
+function cfmAplicarFiltros() {
+  if (!cfmTemFiltroAtivo()) {
+    cfmRowsView = [];
+  } else {
+    var view = cfmRows.slice();
+    if (cfmSemTelOn) {
+      view = view.filter(function(r) { var ct=cfmContatoCache[r.NU_CRM||'']; return ct&&(ct.telefone||ct.email); });
+    }
+    if (cfmSemEspOn) {
+      view = view.filter(function(r) { return !(r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()); });
+    }
+    cfmRowsView = view;
+  }
+  cfmRenderTabela(cfmDadosVisiveis(), cfmCidadeAtual, cfmTotalRegistros);
+}
+
 function cfmToggleSemTel() {
   cfmSemTelOn = !cfmSemTelOn;
   var btn = document.getElementById('btn-cfm-st');
   if (btn) btn.classList.toggle('on', cfmSemTelOn);
-  cfmRowsView = cfmSemTelOn
-    ? cfmRows.filter(function(r) { var ct=cfmContatoCache[r.NU_CRM||'']; return ct&&(ct.telefone||ct.email); })
-    : cfmRows.slice();
-  cfmRenderTabela(cfmRowsView.length ? cfmRowsView : cfmRows, cfmCidadeAtual, cfmTotalRegistros);
+  cfmAplicarFiltros();
+}
+
+function cfmToggleSemEsp() {
+  cfmSemEspOn = !cfmSemEspOn;
+  var btn = document.getElementById('btn-cfm-sesp');
+  if (btn) btn.classList.toggle('on', cfmSemEspOn);
+  cfmAplicarFiltros();
 }
 
 // ── Export XLSX ───────────────────────────────────────────────────────
@@ -2387,9 +2422,9 @@ function cfmExportXL() {
     document.head.appendChild(s);
     return;
   }
-  var dados = (cfmRowsView.length ? cfmRowsView : cfmRows);
+  var dados = cfmDadosVisiveis();
   if (!dados.length) return;
-  var HDR = ['CRM','Nome','Cidade','UF','Especialidade CFM','Situação','Data Inscrição','Telefone','Email','CPF','Macrorregião'];
+  var HDR = ['CRM','Nome','Cidade','UF','Especialidade CFM','Especialidades/Áreas','Situação','Data Inscrição','Telefone','Email','CPF','Macrorregião'];
   var wb = XLSX.utils.book_new();
   var enr = dados.map(function(r) {
     var crm = r.NU_CRM||'';
@@ -2397,11 +2432,13 @@ function cfmExportXL() {
     var esp = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^,]*/g,'').trim();
     var obj = {};
     var espXL = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').trim();
+    var espRaw = (r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()) ? r.ESPECIALIDADE : 'Médico sem especialidade registrada';
     obj['CRM']             = crm + '/' + (r.SG_UF||'');
     obj['Nome']            = r.NM_MEDICO||'';
     obj['Cidade']          = r._cidade || cfmCidadeAtual || '';
     obj['UF']              = r.SG_UF||'';
     obj['Especialidade CFM'] = espXL;
+    obj['Especialidades/Áreas'] = espRaw;
     obj['Situação']        = r.SITUACAO||'';
     obj['Data Inscrição']  = r.DT_INSCRICAO||'';
     obj['Telefone']        = ct.telefone||'';
@@ -2426,6 +2463,9 @@ function cfmLimpar() {
   document.getElementById('btn-cfm-limpar').style.display='none';
   document.getElementById('btn-cfm-xl').classList.add('hidden');
   document.getElementById('btn-cfm-st').classList.add('hidden');
+  document.getElementById('btn-cfm-st').classList.remove('on');
+  var _bseL=document.getElementById('btn-cfm-sesp'); if(_bseL){ _bseL.classList.add('hidden'); _bseL.classList.remove('on'); _bseL.disabled=true; }
+  cfmSemTelOn=false; cfmSemEspOn=false;
   document.getElementById('cfm-mun-input').value='';
   document.getElementById('cfm-esp-input').value='';
   var mt=document.getElementById('cfm-mun-tags'); if(mt) mt.innerHTML='';
