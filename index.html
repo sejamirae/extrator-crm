@@ -2735,9 +2735,9 @@ async function reumaBuscar() {
       var got = d.associados || [];
       lista = lista.concat(got);
       reumaLog('Lista: ' + lista.length + (total ? '/' + total : '') + ' associados...', 'i');
-      if (got.length < 100 || (total && lista.length >= total)) break;
+      if (!got.length || (total && lista.length >= total)) break;
       pagina++;
-      if (pagina > 60) break; // trava de segurança
+      if (pagina > 200) break; // trava de segurança
     }
 
     if (!lista.length) {
