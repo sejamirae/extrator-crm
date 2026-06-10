@@ -274,6 +274,7 @@ body.dark #login-screen input::placeholder{color:#606060}
 <div style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 18px">
   <button id="tab-btn-siscnrm" onclick="trocarAba('siscnrm')" style="background:none;border:none;border-bottom:2px solid var(--teal);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">SisCNRM</button>
   <button id="tab-btn-cfm" onclick="trocarAba('cfm')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">CFM</button>
+  <button id="tab-btn-reuma" onclick="trocarAba('reuma')" style="background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:11px 16px;cursor:pointer;letter-spacing:.2px;margin-bottom:-1px">Reumatologia</button>
 </div>
 
 <!-- ── ABA SISCNRM ────────────────────────────────────────────────────── -->
@@ -442,6 +443,76 @@ body.dark #login-screen input::placeholder{color:#606060}
 
 </div><!-- .main -->
 </div><!-- aba-cfm -->
+
+<div id="aba-reuma" style="display:none">
+<div class="main">
+<div class="card">
+
+  <div class="sec">Reumatologia (SBR)</div>
+  <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">Associados da Sociedade Brasileira de Reumatologia com Título de Especialista. Lista pública do site da SBR; o detalhe (CRM, RQE, telefone, endereço) é lido do perfil de cada associado.</div>
+
+  <div class="g2" style="margin-bottom:10px">
+    <div class="field" style="margin:0">
+      <label>Estado</label>
+      <select id="reuma-uf">
+        <option value="">Todos os estados</option>
+        <option value="acre">Acre</option><option value="alagoas">Alagoas</option>
+        <option value="amapa">Amapá</option><option value="amazonas">Amazonas</option>
+        <option value="bahia">Bahia</option><option value="ceara">Ceará</option>
+        <option value="distrito-federal">Distrito Federal</option><option value="espirito-santo">Espírito Santo</option>
+        <option value="goias">Goiás</option><option value="maranhao">Maranhão</option>
+        <option value="mato-grosso">Mato Grosso</option><option value="mato-grosso-do-sul">Mato Grosso do Sul</option>
+        <option value="minas-gerais">Minas Gerais</option><option value="para">Pará</option>
+        <option value="paraiba">Paraíba</option><option value="parana">Paraná</option>
+        <option value="pernambuco">Pernambuco</option><option value="piaui">Piauí</option>
+        <option value="rio-de-janeiro">Rio de Janeiro</option><option value="rio-grande-do-norte">Rio Grande do Norte</option>
+        <option value="rio-grande-do-sul">Rio Grande do Sul</option><option value="rondonia">Rondônia</option>
+        <option value="santa-catarina">Santa Catarina</option><option value="sao-paulo">São Paulo</option>
+        <option value="sergipe">Sergipe</option><option value="tocantins">Tocantins</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <label>Especialidade</label>
+      <select id="reuma-esp">
+        <option value="">Todas</option>
+        <option value="reumatologista-adulto">Reumatologista (adulto)</option>
+        <option value="reumatologista-pediatrico">Reumatologista pediátrico</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-bottom:12px">
+    <div class="field" style="margin:0">
+      <label>Nome <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+      <input type="text" id="reuma-nome" placeholder="Nome ou sobrenome" autocomplete="off">
+    </div>
+    <div class="field" style="margin:0">
+      <label>Cidade <span style="color:var(--muted);font-weight:400">(filtra após buscar)</span></label>
+      <input type="text" id="reuma-cidade" placeholder="Ex.: São Paulo" autocomplete="off" oninput="reumaRefiltrar()">
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:4px">
+    <button class="btn btn-p" id="btn-reuma-buscar" onclick="reumaBuscar()">
+      <span id="sp-reuma" class="hidden spin" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span>
+      Buscar
+    </button>
+    <button class="btn btn-o" id="btn-reuma-limpar" onclick="reumaLimpar()" style="display:none">Nova busca</button>
+    <button class="btn btn-g hidden" id="btn-reuma-xl" onclick="reumaExportXL()" disabled>Exportar XLSX</button>
+    <button class="tog hidden" id="btn-reuma-st" onclick="reumaToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
+  </div>
+</div>
+
+<div class="log" id="reuma-log"></div>
+<div id="reuma-res" class="hidden mt10">
+  <div class="stats" id="reuma-stats"></div>
+  <div class="tbl-wrap">
+    <table><thead><tr id="reuma-th"></tr></thead><tbody id="reuma-tb"></tbody></table>
+  </div>
+</div>
+
+</div><!-- .main -->
+</div><!-- aba-reuma -->
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">&#8593;</button>
 
@@ -2009,7 +2080,7 @@ var cfmBuscandoTodas = false;
 
 // ── Troca de aba ──────────────────────────────────────────────────────
 function trocarAba(aba) {
-  ['siscnrm','cfm'].forEach(function(a) {
+  ['siscnrm','cfm','reuma'].forEach(function(a) {
     var el  = document.getElementById('aba-' + a);
     var btn = document.getElementById('tab-btn-' + a);
     if (el)  el.style.display = (a === aba) ? '' : 'none';
@@ -2619,6 +2690,192 @@ function cfmGetToken() {
 // Função legada mantida para compatibilidade
 function enviarChat() {}
 
+// ── Aba Reumatologia (SBR) ────────────────────────────────────────────────
+var reumaRows = [];
+var reumaRowsView = [];
+var reumaSemTelOn = false;
+
+function reumaLog(msg, tipo, force) {
+  var el = document.getElementById('reuma-log');
+  if (!el) return;
+  if (force) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = '';
+  el.textContent = msg || '';
+  el.className = 'log' + (tipo === 'i' ? ' log-i' : (tipo === '' && msg ? ' log-e' : ''));
+}
+
+async function reumaBuscar() {
+  var estado = document.getElementById('reuma-uf').value;
+  var esp    = document.getElementById('reuma-esp').value;
+  var nome   = document.getElementById('reuma-nome').value.trim();
+
+  reumaRows = []; reumaRowsView = []; reumaSemTelOn = false;
+  document.getElementById('btn-reuma-buscar').disabled = true;
+  document.getElementById('sp-reuma').classList.remove('hidden');
+  document.getElementById('btn-reuma-xl').classList.add('hidden');
+  document.getElementById('btn-reuma-st').classList.add('hidden');
+  document.getElementById('btn-reuma-st').classList.remove('on');
+  document.getElementById('btn-reuma-limpar').style.display = '';
+  document.getElementById('reuma-res').classList.add('hidden');
+  iniciarFaviconLoader();
+  reumaLog('Consultando SBR...', 'i');
+
+  try {
+    // 1. Lista paginada (100 por página)
+    var pagina = 1, total = null, lista = [];
+    while (true) {
+      var qs = new URLSearchParams({ ppp: '100', pagina: String(pagina) });
+      if (estado) qs.set('estado', estado);
+      if (esp)    qs.set('especialidade', esp);
+      if (nome)   qs.set('nome', nome);
+      var r = await fetch(API + '/reuma/buscar?' + qs.toString());
+      var d = await r.json();
+      if (d.error) { reumaLog('Erro: ' + d.error, ''); break; }
+      if (total === null) total = d.total || 0;
+      var got = d.associados || [];
+      lista = lista.concat(got);
+      reumaLog('Lista: ' + lista.length + (total ? '/' + total : '') + ' associados...', 'i');
+      if (got.length < 100 || (total && lista.length >= total)) break;
+      pagina++;
+      if (pagina > 60) break; // trava de segurança
+    }
+
+    if (!lista.length) {
+      reumaLog('Nenhum associado encontrado para o filtro.', '');
+      pararFaviconLoader();
+      document.getElementById('btn-reuma-buscar').disabled = false;
+      document.getElementById('sp-reuma').classList.add('hidden');
+      return;
+    }
+
+    reumaRows = lista;
+    reumaRowsView = [];
+    reumaRender(reumaRows);
+    document.getElementById('reuma-res').classList.remove('hidden');
+
+    // 2. Detalhe (CRM/RQE/telefone/endereço) em lotes
+    var bySlug = {};
+    reumaRows.forEach(function(a){ bySlug[a.slug] = a; });
+    var slugs = reumaRows.map(function(a){ return a.slug; }).filter(Boolean);
+    var LOTE = 40, feito = 0;
+    for (var i = 0; i < slugs.length; i += LOTE) {
+      var lote = slugs.slice(i, i + LOTE);
+      try {
+        var rr = await fetch(API + '/reuma/detalhe_bulk', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slugs: lote })
+        });
+        var dd = await rr.json();
+        (dd.detalhes || []).forEach(function(det){
+          var a = bySlug[det.slug];
+          if (!a) return;
+          a.crm = det.crm || ''; a.crm_uf = det.crm_uf || '';
+          a.rqe = det.rqe || '';
+          a.telefone = (det.telefones || []).join(' / ');
+          a.endereco = (det.enderecos || []).join(' | ');
+        });
+      } catch (e) { /* segue */ }
+      feito += lote.length;
+      reumaLog('Detalhes: ' + Math.round(feito / slugs.length * 100) + '% (' + feito + '/' + slugs.length + ')', 'i');
+      reumaRender(reumaDadosVisiveis());
+    }
+
+    reumaLog('', '', true);
+    document.getElementById('btn-reuma-xl').classList.remove('hidden');
+    document.getElementById('btn-reuma-xl').disabled = false;
+    document.getElementById('btn-reuma-st').classList.remove('hidden');
+    document.getElementById('btn-reuma-st').disabled = false;
+  } catch (e) {
+    reumaLog('Erro de rede: ' + e.message, '');
+  } finally {
+    pararFaviconLoader();
+    document.getElementById('btn-reuma-buscar').disabled = false;
+    document.getElementById('sp-reuma').classList.add('hidden');
+  }
+}
+
+function reumaDadosVisiveis() {
+  var cid = document.getElementById('reuma-cidade').value.trim().toLowerCase();
+  var dados = reumaRows;
+  if (cid) dados = dados.filter(function(a){ return (a.cidade || '').toLowerCase().indexOf(cid) >= 0; });
+  if (reumaSemTelOn) dados = dados.filter(function(a){ return a.telefone && a.telefone.trim(); });
+  reumaRowsView = dados;
+  return dados;
+}
+
+function reumaRefiltrar() {
+  if (!reumaRows.length) return;
+  reumaRender(reumaDadosVisiveis());
+}
+
+function reumaToggleSemTel() {
+  reumaSemTelOn = !reumaSemTelOn;
+  document.getElementById('btn-reuma-st').classList.toggle('on', reumaSemTelOn);
+  reumaRender(reumaDadosVisiveis());
+}
+
+function reumaRender(dados) {
+  document.getElementById('reuma-th').innerHTML =
+    '<th>Nome</th><th>CRM</th><th>UF</th><th>Cidade</th><th>Tipo</th><th>Título</th><th>RQE</th><th>Telefone</th><th>Endereço</th><th>Ex-Pres.</th>';
+  var tb = document.getElementById('reuma-tb');
+  tb.innerHTML = dados.map(function(a){
+    var uf = a.uf || a.crm_uf || '';
+    var tipo = a.pediatrico ? 'Pediátrico' : 'Adulto';
+    return '<tr>' +
+      '<td>' + (a.nome || '') + '</td>' +
+      '<td>' + (a.crm || '') + '</td>' +
+      '<td>' + uf + '</td>' +
+      '<td>' + (a.cidade || '') + '</td>' +
+      '<td>' + tipo + '</td>' +
+      '<td>' + (a.titulo ? 'Sim' : '') + '</td>' +
+      '<td>' + (a.rqe || '') + '</td>' +
+      '<td>' + (a.telefone || '') + '</td>' +
+      '<td style="font-size:11px">' + (a.endereco || '') + '</td>' +
+      '<td>' + (a.ex_presidente ? 'Sim' : '') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var comTel = dados.filter(function(a){ return a.telefone && a.telefone.trim(); }).length;
+  document.getElementById('reuma-stats').innerHTML =
+    '<div class="stat"><div class="sv">' + dados.length + '</div><div class="sl">Reumatologistas</div></div>' +
+    '<div class="stat"><div class="sv"><span style="color:var(--green)">' + comTel + '</span></div><div class="sl">Com telefone</div></div>';
+}
+
+function reumaExportXL() {
+  var dados = reumaDadosVisiveis();
+  if (!dados.length) return;
+  var HDR = ['Nome','CRM','UF','Cidade','Tipo','Título de Especialista','RQE','Telefone','Endereço','Ex-Presidente'];
+  var enr = dados.map(function(a){
+    var obj = {};
+    obj['Nome']     = a.nome || '';
+    obj['CRM']      = a.crm || '';
+    obj['UF']       = a.uf || a.crm_uf || '';
+    obj['Cidade']   = a.cidade || '';
+    obj['Tipo']     = a.pediatrico ? 'Pediátrico' : 'Adulto';
+    obj['Título de Especialista'] = a.titulo ? 'Sim' : '';
+    obj['RQE']      = a.rqe || '';
+    obj['Telefone'] = a.telefone || '';
+    obj['Endereço'] = a.endereco || '';
+    obj['Ex-Presidente'] = a.ex_presidente ? 'Sim' : '';
+    return obj;
+  });
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(enr, { header: HDR });
+  XLSX.utils.book_append_sheet(wb, ws, 'Reumatologistas SBR');
+  XLSX.writeFile(wb, 'reumatologistas_sbr_' + Date.now() + '.xlsx');
+}
+
+function reumaLimpar() {
+  reumaRows = []; reumaRowsView = []; reumaSemTelOn = false;
+  document.getElementById('reuma-res').classList.add('hidden');
+  document.getElementById('reuma-log').style.display = 'none';
+  document.getElementById('btn-reuma-limpar').style.display = 'none';
+  document.getElementById('btn-reuma-xl').classList.add('hidden');
+  document.getElementById('btn-reuma-st').classList.add('hidden');
+  document.getElementById('btn-reuma-st').classList.remove('on');
+  document.getElementById('reuma-cidade').value = '';
+  document.getElementById('reuma-nome').value = '';
+}
 </script>
 </body>
 </html>
