@@ -500,6 +500,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="btn btn-o" id="btn-reuma-limpar" onclick="reumaLimpar()" style="display:none">Nova busca</button>
     <button class="btn btn-g hidden" id="btn-reuma-xl" onclick="reumaExportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-reuma-st" onclick="reumaToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
+    <button class="btn btn-o hidden" id="btn-reuma-nome" onclick="reumaBuscarPorNome()" disabled>Buscar sem-CRM por nome (DoctorID)</button>
   </div>
 </div>
 
@@ -2780,11 +2781,48 @@ async function reumaBuscar() {
       reumaRender(reumaDadosVisiveis());
     }
 
+    // 3. Enriquecimento DoctorID (CPF, email, celular, especialidades, macro) — só se configurado
+    if (didEmail && didSenha) {
+      var byCrm = {};
+      reumaRows.forEach(function(a){ if (a.crm) { (byCrm[a.crm] = byCrm[a.crm] || []).push(a); } });
+      var crms = Object.keys(byCrm);
+      if (crms.length) {
+        var BULK = 8, df = 0;
+        for (var j = 0; j < crms.length; j += BULK) {
+          var loteC = crms.slice(j, j + BULK);
+          try {
+            var pc = new URLSearchParams({ email: didEmail, senha: didSenha, crms: loteC.join(',') });
+            var rc = await fetch(API + '/telefone_bulk?' + pc.toString());
+            var dc = await rc.json();
+            if (!dc.error) {
+              Object.keys(dc).forEach(function(crm){
+                var info = dc[crm] || {};
+                (byCrm[crm] || []).forEach(function(a){
+                  a.did_tel   = info.telefone || '';
+                  a.did_email = info.email || '';
+                  a.did_cpf   = info.cpf || '';
+                  a.did_esp   = (info.especialidades || []).join(', ');
+                  a.did_macro = (info.macrorregioes || []).join(' | ');
+                });
+              });
+            }
+          } catch (e) { /* segue */ }
+          df += loteC.length;
+          reumaLog('DoctorID: ' + Math.round(df / crms.length * 100) + '% (' + df + '/' + crms.length + ')', 'i');
+          reumaRender(reumaDadosVisiveis());
+        }
+      }
+    }
+
     reumaLog('', '', true);
     document.getElementById('btn-reuma-xl').classList.remove('hidden');
     document.getElementById('btn-reuma-xl').disabled = false;
     document.getElementById('btn-reuma-st').classList.remove('hidden');
     document.getElementById('btn-reuma-st').disabled = false;
+    if (didEmail && didSenha && reumaRows.some(function(a){ return !a.crm; })) {
+      var bn = document.getElementById('btn-reuma-nome');
+      bn.classList.remove('hidden'); bn.disabled = false;
+    }
   } catch (e) {
     reumaLog('Erro de rede: ' + e.message, '');
   } finally {
@@ -2816,7 +2854,7 @@ function reumaToggleSemTel() {
 
 function reumaRender(dados) {
   document.getElementById('reuma-th').innerHTML =
-    '<th>Nome</th><th>CRM</th><th>UF</th><th>Cidade</th><th>Tipo</th><th>Título</th><th>RQE</th><th>Telefone</th><th>Endereço</th><th>Ex-Pres.</th>';
+    '<th>Nome</th><th>CRM</th><th>UF</th><th>Cidade</th><th>Tipo</th><th>Título</th><th>RQE</th><th>Telefone</th><th>Celular</th><th>Email</th><th>CPF</th><th>Especialidades</th><th>Macrorregião</th><th>Endereço</th><th>Ex-Pres.</th>';
   var tb = document.getElementById('reuma-tb');
   tb.innerHTML = dados.map(function(a){
     var uf = a.uf || a.crm_uf || '';
@@ -2830,12 +2868,17 @@ function reumaRender(dados) {
       '<td>' + (a.titulo ? 'Sim' : '') + '</td>' +
       '<td>' + (a.rqe || '') + '</td>' +
       '<td>' + (a.telefone || '') + '</td>' +
+      '<td>' + (a.did_tel || '') + '</td>' +
+      '<td>' + (a.did_email || '') + '</td>' +
+      '<td>' + (a.did_cpf || '') + '</td>' +
+      '<td style="font-size:11px">' + (a.did_esp || '') + '</td>' +
+      '<td style="font-size:11px">' + (a.did_macro || '') + '</td>' +
       '<td style="font-size:11px">' + (a.endereco || '') + '</td>' +
       '<td>' + (a.ex_presidente ? 'Sim' : '') + '</td>' +
     '</tr>';
   }).join('');
 
-  var comTel = dados.filter(function(a){ return a.telefone && a.telefone.trim(); }).length;
+  var comTel = dados.filter(function(a){ return (a.telefone && a.telefone.trim()) || (a.did_tel && a.did_tel.trim()); }).length;
   document.getElementById('reuma-stats').innerHTML =
     '<div class="stat"><div class="sv">' + dados.length + '</div><div class="sl">Reumatologistas</div></div>' +
     '<div class="stat"><div class="sv"><span style="color:var(--green)">' + comTel + '</span></div><div class="sl">Com telefone</div></div>';
@@ -2844,7 +2887,7 @@ function reumaRender(dados) {
 function reumaExportXL() {
   var dados = reumaDadosVisiveis();
   if (!dados.length) return;
-  var HDR = ['Nome','CRM','UF','Cidade','Tipo','Título de Especialista','RQE','Telefone','Endereço','Ex-Presidente'];
+  var HDR = ['Nome','CRM','UF','Cidade','Tipo','Título de Especialista','RQE','Telefone','Celular','Email','CPF','Especialidades','Macrorregião','Endereço','Ex-Presidente'];
   var enr = dados.map(function(a){
     var obj = {};
     obj['Nome']     = a.nome || '';
@@ -2855,6 +2898,11 @@ function reumaExportXL() {
     obj['Título de Especialista'] = a.titulo ? 'Sim' : '';
     obj['RQE']      = a.rqe || '';
     obj['Telefone'] = a.telefone || '';
+    obj['Celular']  = a.did_tel || '';
+    obj['Email']    = a.did_email || '';
+    obj['CPF']      = a.did_cpf || '';
+    obj['Especialidades'] = a.did_esp || '';
+    obj['Macrorregião']   = a.did_macro || '';
     obj['Endereço'] = a.endereco || '';
     obj['Ex-Presidente'] = a.ex_presidente ? 'Sim' : '';
     return obj;
@@ -2865,6 +2913,60 @@ function reumaExportXL() {
   XLSX.writeFile(wb, 'reumatologistas_sbr_' + Date.now() + '.xlsx');
 }
 
+var REUMA_UF = {acre:'AC',alagoas:'AL',amapa:'AP',amazonas:'AM',bahia:'BA',ceara:'CE','distrito-federal':'DF','espirito-santo':'ES',goias:'GO',maranhao:'MA','mato-grosso':'MT','mato-grosso-do-sul':'MS','minas-gerais':'MG',para:'PA',paraiba:'PB',parana:'PR',pernambuco:'PE',piaui:'PI','rio-de-janeiro':'RJ','rio-grande-do-norte':'RN','rio-grande-do-sul':'RS',rondonia:'RO','santa-catarina':'SC','sao-paulo':'SP',sergipe:'SE',tocantins:'TO'};
+
+async function reumaBuscarPorNome() {
+  if (!didEmail || !didSenha) { reumaLog('Configure o DoctorID nas Configurações primeiro.', ''); return; }
+  var ufBusca = REUMA_UF[document.getElementById('reuma-uf').value] || '';
+  var alvo = reumaRows.filter(function(a){ return !a.crm && a.nome; });
+  if (!alvo.length) { reumaLog('Nenhuma linha sem CRM para buscar.', 'i'); return; }
+  var bn = document.getElementById('btn-reuma-nome');
+  bn.disabled = true; iniciarFaviconLoader();
+  var bySlug = {};
+  var itens = alvo.map(function(a){
+    bySlug[a.slug] = a;
+    var uf = a.uf || a.crm_uf || '';
+    if (!uf && a.cidade) { var mm = a.cidade.match(/-\s*([A-Z]{2})\s*$/); if (mm) uf = mm[1]; }
+    if (!uf) uf = ufBusca;
+    return { slug: a.slug, nome: a.nome, uf: uf };
+  });
+  var BULK = 10, done = 0, achou = 0, amb = 0;
+  for (var i = 0; i < itens.length; i += BULK) {
+    var lote = itens.slice(i, i + BULK);
+    try {
+      var r = await fetch(API + '/reuma/por_nome', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: didEmail, senha: didSenha, itens: lote })
+      });
+      var d = await r.json();
+      if (d.error) { reumaLog('DoctorID: ' + d.error, ''); break; }
+      var resu = d.resultados || {};
+      Object.keys(resu).forEach(function(slug){
+        var info = resu[slug] || {};
+        var a = bySlug[slug];
+        if (!a) return;
+        if (info.match) {
+          var m = info.match;
+          a.crm = m.crm || ''; a.crm_uf = m.crm_uf || '';
+          a.did_tel = m.telefone || ''; a.did_email = m.email || '';
+          a.did_cpf = m.cpf || '';
+          a.did_esp = (m.especialidades || []).join(', ');
+          a.did_macro = (m.macrorregioes || []).join(' | ');
+          if (a.crm) achou++;
+        } else if (info.ambiguo) {
+          amb++;
+        }
+      });
+    } catch (e) { /* segue */ }
+    done += lote.length;
+    reumaLog('Buscando sem-CRM por nome: ' + Math.round(done / itens.length * 100) + '% — ' + achou + ' achados, ' + amb + ' ambíguos', 'i');
+    reumaRender(reumaDadosVisiveis());
+  }
+  reumaLog(achou + ' encontrados por nome; ' + amb + ' ambíguos (homônimos, não preenchidos).', 'i');
+  pararFaviconLoader();
+  bn.disabled = false;
+}
+
 function reumaLimpar() {
   reumaRows = []; reumaRowsView = []; reumaSemTelOn = false;
   document.getElementById('reuma-res').classList.add('hidden');
@@ -2873,6 +2975,7 @@ function reumaLimpar() {
   document.getElementById('btn-reuma-xl').classList.add('hidden');
   document.getElementById('btn-reuma-st').classList.add('hidden');
   document.getElementById('btn-reuma-st').classList.remove('on');
+  var _bn = document.getElementById('btn-reuma-nome'); if (_bn) { _bn.classList.add('hidden'); _bn.disabled = true; }
   document.getElementById('reuma-cidade').value = '';
   document.getElementById('reuma-nome').value = '';
 }
