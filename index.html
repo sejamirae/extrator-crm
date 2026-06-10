@@ -430,6 +430,10 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="btn btn-g hidden" id="btn-cfm-xl" onclick="cfmExportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-cfm-st" onclick="cfmToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
     <button class="tog hidden" id="btn-cfm-sesp" onclick="cfmToggleSemEsp()" disabled><span class="track"></span>Apenas sem especialidade</button>
+    <span style="position:relative;display:inline-block">
+      <button class="btn btn-o hidden" id="btn-cfm-cols" onclick="canonAbrirMenu('cfm-cols-dd')" disabled>Colunas</button>
+      <div id="cfm-cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+    </span>
   </div>
 </div>
 
@@ -502,6 +506,10 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="btn btn-o" id="btn-reuma-limpar" onclick="reumaLimpar()" style="display:none">Nova busca</button>
     <button class="btn btn-g hidden" id="btn-reuma-xl" onclick="reumaExportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-reuma-st" onclick="reumaToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
+    <span style="position:relative;display:inline-block">
+      <button class="btn btn-o hidden" id="btn-reuma-cols" onclick="canonAbrirMenu('reuma-cols-dd')" disabled>Colunas</button>
+      <div id="reuma-cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+    </span>
   </div>
 </div>
 
@@ -577,6 +585,106 @@ let _loadingUFs={};     // uf -> Promise (evita dupla carga)
 const COLS=['Instituição','Programa','Nº Certificado','Médico','CRM','UF','Início','Término','Emissão do Certificado','Informações Adicionais'];
 const LABEL={'Nº Certificado':'Certificado','Emissão do Certificado':'Emissão','Informações Adicionais':'Observações'};
 function lbl(c){return LABEL[c]||c;}
+
+/* ───────────────────────────────────────────────────────────────────────
+   MOTOR DE TABELA UNIFICADO — mesmas colunas nas três abas.
+   Cada aba gera linhas "canônicas" (objeto com estas chaves) e chama
+   canonRender(). Colunas sem dado ficam vazias. Ocultar/mostrar por coluna,
+   fixar Nome/CRM/Telefone, ordenar por clique.
+   ─────────────────────────────────────────────────────────────────────── */
+var CANON = [
+  {k:'nome',            l:'Nome'},
+  {k:'crm',             l:'CRM'},
+  {k:'uf',              l:'UF'},
+  {k:'especialidade',   l:'Especialidade'},
+  {k:'subespecialidade',l:'Subespecialidade'},
+  {k:'instituicao',     l:'Instituição'},
+  {k:'cidade',          l:'Cidade'},
+  {k:'telefone',        l:'Telefone'},
+  {k:'whatsapp',        l:'WhatsApp'},
+  {k:'email',           l:'E-mail'},
+  {k:'cpf',             l:'CPF'},
+  {k:'situacao',        l:'Situação'},
+  {k:'dt_inicio',       l:'Início'},
+  {k:'dt_termino',      l:'Término'},
+  {k:'dt_emissao',      l:'Emissão'},
+  {k:'rqe',             l:'RQE'},
+  {k:'macro',           l:'Macrorregião'},
+  {k:'obs',             l:'Observações'}
+];
+var CANON_STICKY = { nome:0, crm:180, telefone:270 };          // left offset px
+var CANON_W = { nome:180, crm:90, telefone:130 };              // largura fixa das fixas
+var canonColVis = {};
+(function(){
+  try { canonColVis = JSON.parse(localStorage.getItem('canonColVis')||'{}'); } catch(e){ canonColVis = {}; }
+  CANON.forEach(function(c){ if(canonColVis[c.k]===undefined) canonColVis[c.k]=true; });
+})();
+var canonSort = {};   // por tabela: { thId: {k, dir} }
+
+function canonVisiveis(){ return CANON.filter(function(c){ return canonColVis[c.k]!==false; }); }
+
+function canonTH(k){
+  var stk = (k in CANON_STICKY);
+  var s = 'white-space:nowrap;cursor:pointer';
+  if(stk) s += ';position:sticky;left:'+CANON_STICKY[k]+'px;z-index:3;width:'+CANON_W[k]+'px;background:#f8f8f6';
+  return s;
+}
+function canonTD(k){
+  var stk = (k in CANON_STICKY);
+  var s = '';
+  if(stk) s = 'position:sticky;left:'+CANON_STICKY[k]+'px;z-index:1;width:'+CANON_W[k]+'px;background:inherit';
+  return s;
+}
+
+function canonRender(thId, tbId, rows){
+  var vis = canonVisiveis();
+  var srt = canonSort[thId];
+  var data = rows.slice();
+  if(srt && srt.k){
+    data.sort(function(a,b){
+      var x=(a[srt.k]||'').toString().toLowerCase(), y=(b[srt.k]||'').toString().toLowerCase();
+      var nx=parseFloat(x), ny=parseFloat(y);
+      if(!isNaN(nx)&&!isNaN(ny)){ x=nx; y=ny; }
+      return (x<y?-1:x>y?1:0)*srt.dir;
+    });
+  }
+  var arrow = function(k){ return (srt&&srt.k===k) ? (srt.dir>0?' ▲':' ▼') : ''; };
+  document.getElementById(thId).innerHTML = vis.map(function(c){
+    return '<th style="'+canonTH(c.k)+'" onclick="canonSortClick(\''+thId+'\',\''+tbId+'\',\''+c.k+'\')">'+c.l+arrow(c.k)+'</th>';
+  }).join('');
+  document.getElementById(tbId).innerHTML = data.map(function(r){
+    return '<tr>'+vis.map(function(c){
+      var v = r[c.k]==null ? '' : r[c.k];
+      var extra = (c.k==='email'||c.k==='subespecialidade'||c.k==='macro'||c.k==='obs'||c.k==='instituicao') ? 'font-size:11px;' : '';
+      return '<td style="'+extra+canonTD(c.k)+'">'+v+'</td>';
+    }).join('')+'</tr>';
+  }).join('');
+}
+
+function canonSortClick(thId, tbId, k){
+  var cur = canonSort[thId];
+  if(cur && cur.k===k) cur.dir = -cur.dir;
+  else canonSort[thId] = {k:k, dir:1};
+  if(canonReRender[thId]) canonReRender[thId]();
+}
+var canonReRender = {};   // thId -> função que re-renderiza a aba
+
+/* Menu ocultar/mostrar colunas (compartilhado) */
+function canonColMenuHTML(menuId){
+  return CANON.map(function(c){
+    return '<label class="ddi" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="event.stopPropagation()">'+
+      '<input type="checkbox" style="width:auto;margin:0" '+(canonColVis[c.k]!==false?'checked':'')+' onchange="canonToggleCol(\''+c.k+'\')"> '+c.l+'</label>';
+  }).join('');
+}
+function canonToggleCol(k){
+  canonColVis[k] = !(canonColVis[k]!==false);
+  try { localStorage.setItem('canonColVis', JSON.stringify(canonColVis)); } catch(e){}
+  Object.keys(canonReRender).forEach(function(id){ canonReRender[id](); });
+}
+function canonAbrirMenu(id){
+  var dd = document.getElementById(id);
+  dd.style.display = dd.style.display==='block' ? 'none' : 'block';
+}
 function fmt(v){if(!v)return '';var p=v.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function parseDate(s){if(!s)return new Date(0);var p=s.split('/');return new Date(+p[2],+p[1]-1,+p[0]);}
 function dark(){return document.body.classList.contains('dark');}
@@ -2222,9 +2330,15 @@ document.addEventListener('click', function(e) {
     document.getElementById('cfm-mun-dd').style.display = 'none';
   if (!e.target.closest('#cfm-esp-input') && !e.target.closest('#cfm-esp-dd'))
     document.getElementById('cfm-esp-dd').style.display = 'none';
+  var _ccd = document.getElementById('cfm-cols-dd');
+  if (_ccd && !e.target.closest('#btn-cfm-cols') && !e.target.closest('#cfm-cols-dd'))
+    _ccd.style.display = 'none';
   var _rdd = document.getElementById('reuma-cidade-dd');
   if (_rdd && !e.target.closest('#reuma-cidade-input') && !e.target.closest('#reuma-cidade-dd'))
     _rdd.style.display = 'none';
+  var _rcd = document.getElementById('reuma-cols-dd');
+  if (_rcd && !e.target.closest('#btn-reuma-cols') && !e.target.closest('#reuma-cols-dd'))
+    _rcd.style.display = 'none';
 });
 
 // ── Busca principal ───────────────────────────────────────────────────
@@ -2355,38 +2469,32 @@ function cfmRenderTabela(dados, cidade, total) {
     '<div class="stat"><div class="sv" id="cfm-sv-count">' + dados.length + (total > dados.length ? '<span style="font-size:10px;color:var(--muted)"> /'+total+'</span>' : '') + '</div><div class="sl">Médicos em ' + (cidade||'') + '</div></div>' +
     (_statTelHTML || '');
 
-  document.getElementById('cfm-th').innerHTML =
-    '<th>CRM</th><th>Nome</th><th>Cidade</th><th>UF</th><th>Especialidade</th><th>Especialidades/Áreas</th><th>Situação</th><th>Telefone</th><th>Email</th><th>CPF</th><th>Macrorregião</th>';
-
-  document.getElementById('cfm-tb').innerHTML = dados.map(function(r, i) {
-    var crm = r.NU_CRM || '';
-    var ct  = cfmContatoCache[crm] || {};
-    var espCfm = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').replace(/\([^)]*\)/g,'').trim();
-    var espRaw = (r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()) ? r.ESPECIALIDADE : 'Médico sem especialidade registrada';
-    var sit = r.SITUACAO === 'Regular' ? '<span style="color:var(--green)">Regular</span>' : '<span style="color:var(--muted)">'+(r.SITUACAO||'')+'</span>';
-    var cidade = r._cidade || cfmCidadeAtual || '';
-    var uf = r.SG_UF || '';
-    return '<tr>' +
-      '<td style="white-space:nowrap;font-weight:600">' + crm + '/' + uf + '</td>' +
-      '<td>' + (r.NM_MEDICO||'') + '</td>' +
-      '<td style="white-space:nowrap">' + cidade + '</td>' +
-      '<td>' + uf + '</td>' +
-      '<td style="font-size:11px">' + espCfm + '</td>' +
-      '<td style="font-size:11px">' + espRaw + '</td>' +
-      '<td>' + sit + '</td>' +
-      '<td id="cfm-tel-'+i+'">' + (ct.telefone||'') + '</td>' +
-      '<td id="cfm-eml-'+i+'" style="font-size:11px">' + (ct.email||'') + '</td>' +
-      '<td id="cfm-cpf-'+i+'" style="font-size:11px;white-space:nowrap">' + (ct.cpf||'') + '</td>' +
-      '<td id="cfm-mac-'+i+'" style="font-size:11px">' + ((ct.macrorregioes||[]).join(' | ')) + '</td>' +
-      '</tr>';
-  }).join('');
+  canonReRender['cfm-tb'] = function(){ cfmRenderTabela(cfmDadosVisiveis(), cfmCidadeAtual, cfmTotalRegistros); };
+  canonRender('cfm-th', 'cfm-tb', dados.map(cfmToCanon));
 
   document.getElementById('cfm-res').classList.remove('hidden');
+  var _cbc = document.getElementById('btn-cfm-cols');
+  if (_cbc) { _cbc.classList.remove('hidden'); _cbc.disabled = false; document.getElementById('cfm-cols-dd').innerHTML = canonColMenuHTML('cfm-cols-dd'); }
 
   // Remove paginação antiga se existir
   var nav = document.getElementById('cfm-pag');
   if (nav) nav.remove();
 
+}
+
+function cfmToCanon(r){
+  var crm = r.NU_CRM || '';
+  var ct  = cfmContatoCache[crm] || {};
+  var espLimpa = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').replace(/\([^)]*\)/g,'').trim();
+  var espRaw = (r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()) ? r.ESPECIALIDADE : 'Médico sem especialidade registrada';
+  return {
+    nome: r.NM_MEDICO||'', crm: crm ? crm+'/'+(r.SG_UF||'') : '', uf: r.SG_UF||'',
+    especialidade: espLimpa, subespecialidade: espRaw, instituicao:'',
+    cidade: r._cidade||cfmCidadeAtual||'', telefone: ct.telefone||'', whatsapp: ct.telefone||'',
+    email: ct.email||'', cpf: ct.cpf||'', situacao: r.SITUACAO||'',
+    dt_inicio:'', dt_termino:'', dt_emissao:'', rqe:'',
+    macro:(ct.macrorregioes||[]).join(' | '), obs:''
+  };
 }
 
 // ── Contatos DoctorID para aba CFM ────────────────────────────────────
@@ -2427,19 +2535,6 @@ async function cfmIniciarContatos(dados) {
             macrorregioes: info.macrorregioes||[]
           };
           if (info.telefone||info.email) comContato++;
-          dados.forEach(function(row, ri) {
-            if ((row.NU_CRM||'') === crm) {
-              var ct = cfmContatoCache[crm];
-              var telEl = document.getElementById('cfm-tel-'+ri);
-              var emlEl = document.getElementById('cfm-eml-'+ri);
-              var cpfEl = document.getElementById('cfm-cpf-'+ri);
-              var macEl = document.getElementById('cfm-mac-'+ri);
-              if (telEl) telEl.textContent = ct.telefone;
-              if (emlEl) emlEl.textContent = ct.email;
-              if (cpfEl) cpfEl.textContent = ct.cpf;
-              if (macEl) macEl.textContent = (ct.macrorregioes||[]).join(' | ');
-            }
-          });
         });
       }
     } catch(e) {
@@ -2447,6 +2542,7 @@ async function cfmIniciarContatos(dados) {
     }
     done += lote.length;
     var pct = Math.round(done/total*100);
+    canonRender('cfm-th', 'cfm-tb', cfmDadosVisiveis().map(cfmToCanon));
     var statEl = document.getElementById('cfm-stat-tel');
     if (statEl) {
       if (done >= total) {
@@ -2510,27 +2606,13 @@ function cfmExportXL() {
   }
   var dados = cfmDadosVisiveis();
   if (!dados.length) return;
-  var HDR = ['CRM','Nome','Cidade','UF','Especialidade CFM','Especialidades/Áreas','Situação','Data Inscrição','Telefone','Email','CPF','Macrorregião'];
+  var vis = canonVisiveis();
+  var HDR = vis.map(function(c){ return c.l; });
   var wb = XLSX.utils.book_new();
   var enr = dados.map(function(r) {
-    var crm = r.NU_CRM||'';
-    var ct  = cfmContatoCache[crm]||{};
-    var esp = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^,]*/g,'').trim();
+    var canon = cfmToCanon(r);
     var obj = {};
-    var espXL = (r.ESPECIALIDADE||'').replace(/&/g,'').replace(/- RQE[^\/,]*/g,'').trim();
-    var espRaw = (r.ESPECIALIDADE != null && String(r.ESPECIALIDADE).trim()) ? r.ESPECIALIDADE : 'Médico sem especialidade registrada';
-    obj['CRM']             = crm + '/' + (r.SG_UF||'');
-    obj['Nome']            = r.NM_MEDICO||'';
-    obj['Cidade']          = r._cidade || cfmCidadeAtual || '';
-    obj['UF']              = r.SG_UF||'';
-    obj['Especialidade CFM'] = espXL;
-    obj['Especialidades/Áreas'] = espRaw;
-    obj['Situação']        = r.SITUACAO||'';
-    obj['Data Inscrição']  = r.DT_INSCRICAO||'';
-    obj['Telefone']        = ct.telefone||'';
-    obj['Email']           = ct.email||'';
-    obj['CPF']             = ct.cpf||'';
-    obj['Macrorregião']    = (ct.macrorregioes||[]).join(' | ');
+    vis.forEach(function(c){ obj[c.l] = canon[c.k] || ''; });
     return obj;
   });
   var ws = XLSX.utils.json_to_sheet(enr, {header: HDR});
@@ -2551,6 +2633,7 @@ function cfmLimpar() {
   document.getElementById('btn-cfm-st').classList.add('hidden');
   document.getElementById('btn-cfm-st').classList.remove('on');
   var _bseL=document.getElementById('btn-cfm-sesp'); if(_bseL){ _bseL.classList.add('hidden'); _bseL.classList.remove('on'); _bseL.disabled=true; }
+  var _bclC=document.getElementById('btn-cfm-cols'); if(_bclC){ _bclC.classList.add('hidden'); _bclC.disabled=true; }
   cfmSemTelOn=false; cfmSemEspOn=false;
   document.getElementById('cfm-mun-input').value='';
   document.getElementById('cfm-esp-input').value='';
@@ -2878,6 +2961,9 @@ async function reumaBuscar() {
     document.getElementById('btn-reuma-xl').disabled = false;
     document.getElementById('btn-reuma-st').classList.remove('hidden');
     document.getElementById('btn-reuma-st').disabled = false;
+    var _bc = document.getElementById('btn-reuma-cols');
+    _bc.classList.remove('hidden'); _bc.disabled = false;
+    document.getElementById('reuma-cols-dd').innerHTML = canonColMenuHTML('reuma-cols-dd');
   } catch (e) {
     reumaLog('Erro de rede: ' + e.message, '');
   } finally {
@@ -2901,32 +2987,21 @@ function reumaToggleSemTel() {
   reumaRender(reumaDadosVisiveis());
 }
 
-function reumaRender(dados) {
-  document.getElementById('reuma-th').innerHTML =
-    '<th>Nome</th><th>CRM</th><th>UF</th><th>Cidade</th><th>Tipo</th><th>Título</th><th>RQE</th><th>Telefone</th><th>Celular</th><th>Email</th><th>CPF</th><th>Especialidades</th><th>Macrorregião</th><th>Endereço</th><th>Ex-Pres.</th>';
-  var tb = document.getElementById('reuma-tb');
-  tb.innerHTML = dados.map(function(a){
-    var uf = a.uf || a.crm_uf || '';
-    var tipo = a.pediatrico ? 'Pediátrico' : 'Adulto';
-    return '<tr>' +
-      '<td>' + (a.nome || '') + '</td>' +
-      '<td>' + (a.crm || '') + '</td>' +
-      '<td>' + uf + '</td>' +
-      '<td>' + (a.cidade || '') + '</td>' +
-      '<td>' + tipo + '</td>' +
-      '<td>' + (a.titulo ? 'Sim' : '') + '</td>' +
-      '<td>' + (a.rqe || '') + '</td>' +
-      '<td>' + (a.telefone || '') + '</td>' +
-      '<td>' + (a.did_tel || '') + '</td>' +
-      '<td>' + (a.did_email || '') + '</td>' +
-      '<td>' + (a.did_cpf || '') + '</td>' +
-      '<td style="font-size:11px">' + (a.did_esp || '') + '</td>' +
-      '<td style="font-size:11px">' + (a.did_macro || '') + '</td>' +
-      '<td style="font-size:11px">' + (a.endereco || '') + '</td>' +
-      '<td>' + (a.ex_presidente ? 'Sim' : '') + '</td>' +
-    '</tr>';
-  }).join('');
+function reumaToCanon(a){
+  return {
+    nome: a.nome||'', crm: a.crm||'', uf: a.uf||a.crm_uf||'',
+    especialidade: a.pediatrico ? 'Reumatologia (pediátrico)' : 'Reumatologia (adulto)',
+    subespecialidade: a.did_esp||'', instituicao:'', cidade: a.cidade||'',
+    telefone: a.telefone||'', whatsapp: a.did_tel||'', email: a.did_email||'',
+    cpf: a.did_cpf||'', situacao:'', dt_inicio:'', dt_termino:'', dt_emissao:'',
+    rqe: a.rqe||'', macro: a.did_macro||'',
+    obs: [a.titulo?'Título de Especialista':'', a.ex_presidente?'Ex-Presidente SBR':''].filter(Boolean).join(' · ')
+  };
+}
 
+function reumaRender(dados) {
+  canonReRender['reuma-tb'] = function(){ reumaRender(reumaDadosVisiveis()); };
+  canonRender('reuma-th', 'reuma-tb', dados.map(reumaToCanon));
   var contatos = dados.filter(function(a){ return (a.did_tel && a.did_tel.trim()) || (a.did_email && a.did_email.trim()); }).length;
   var marca = reumaEnriquecendo ? '<span class="spin"></span>' : ckSvg('var(--green)');
   document.getElementById('reuma-stats').innerHTML =
@@ -2937,24 +3012,12 @@ function reumaRender(dados) {
 function reumaExportXL() {
   var dados = reumaDadosVisiveis();
   if (!dados.length) return;
-  var HDR = ['Nome','CRM','UF','Cidade','Tipo','Título de Especialista','RQE','Telefone','Celular','Email','CPF','Especialidades','Macrorregião','Endereço','Ex-Presidente'];
+  var vis = canonVisiveis();
+  var HDR = vis.map(function(c){ return c.l; });
   var enr = dados.map(function(a){
+    var canon = reumaToCanon(a);
     var obj = {};
-    obj['Nome']     = a.nome || '';
-    obj['CRM']      = a.crm || '';
-    obj['UF']       = a.uf || a.crm_uf || '';
-    obj['Cidade']   = a.cidade || '';
-    obj['Tipo']     = a.pediatrico ? 'Pediátrico' : 'Adulto';
-    obj['Título de Especialista'] = a.titulo ? 'Sim' : '';
-    obj['RQE']      = a.rqe || '';
-    obj['Telefone'] = a.telefone || '';
-    obj['Celular']  = a.did_tel || '';
-    obj['Email']    = a.did_email || '';
-    obj['CPF']      = a.did_cpf || '';
-    obj['Especialidades'] = a.did_esp || '';
-    obj['Macrorregião']   = a.did_macro || '';
-    obj['Endereço'] = a.endereco || '';
-    obj['Ex-Presidente'] = a.ex_presidente ? 'Sim' : '';
+    vis.forEach(function(c){ obj[c.l] = canon[c.k] || ''; });
     return obj;
   });
   var wb = XLSX.utils.book_new();
@@ -3029,6 +3092,7 @@ function reumaLimpar() {
   document.getElementById('btn-reuma-xl').classList.add('hidden');
   document.getElementById('btn-reuma-st').classList.add('hidden');
   document.getElementById('btn-reuma-st').classList.remove('on');
+  var _bcl = document.getElementById('btn-reuma-cols'); if (_bcl) { _bcl.classList.add('hidden'); _bcl.disabled = true; }
   reumaCidadesSel = []; reumaRenderCidadeTags();
   var _rci = document.getElementById('reuma-cidade-input'); if (_rci) _rci.value = '';
   document.getElementById('reuma-nome').value = '';
