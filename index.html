@@ -605,6 +605,7 @@ var CANON = [
   {k:'email',           l:'E-mail'},
   {k:'cpf',             l:'CPF'},
   {k:'situacao',        l:'Situação'},
+  {k:'dt_registro',     l:'Data de Registro'},
   {k:'dt_inicio',       l:'Início'},
   {k:'dt_termino',      l:'Término'},
   {k:'dt_emissao',      l:'Emissão'},
@@ -644,7 +645,7 @@ function canonRender(thId, tbId, rows){
     return '<tr>'+vis.map(function(c){
       var v = r[c.k]==null ? '' : r[c.k];
       var extra = (c.k==='email'||c.k==='subespecialidade'||c.k==='macro'||c.k==='obs'||c.k==='instituicao') ? 'font-size:11px;' : '';
-      if (['crm','uf','telefone','whatsapp','cpf','situacao','dt_inicio','dt_termino','dt_emissao'].indexOf(c.k) >= 0) extra += 'white-space:nowrap;';
+      if (['crm','uf','telefone','whatsapp','cpf','situacao','dt_registro','dt_inicio','dt_termino','dt_emissao'].indexOf(c.k) >= 0) extra += 'white-space:nowrap;';
       return '<td style="'+extra+'">'+v+'</td>';
     }).join('')+'</tr>';
   }).join('');
@@ -2479,9 +2480,9 @@ function cfmToCanon(r){
   return {
     nome: r.NM_MEDICO||'', crm: crm ? crm+'/'+(r.SG_UF||'') : '', uf: r.SG_UF||'',
     especialidade: espLimpa, subespecialidade: espRaw, instituicao:'',
-    cidade: r._cidade||cfmCidadeAtual||'', telefone: ct.telefone||'', whatsapp: ct.telefone||'',
+    cidade: r._cidade||cfmCidadeAtual||'', telefone: '', whatsapp: ct.telefone||'',
     email: ct.email||'', cpf: ct.cpf||'', situacao: r.SITUACAO||'',
-    dt_inicio:'', dt_termino:'', dt_emissao:'', rqe:'',
+    dt_registro: r.DT_INSCRICAO||'', dt_inicio:'', dt_termino:'', dt_emissao:'', rqe:'',
     macro:(ct.macrorregioes||[]).join(' | '), obs:''
   };
 }
