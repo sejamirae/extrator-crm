@@ -612,8 +612,6 @@ var CANON = [
   {k:'macro',           l:'Macrorregião'},
   {k:'obs',             l:'Observações'}
 ];
-var CANON_STICKY = { nome:0, crm:180, telefone:270 };          // left offset px
-var CANON_W = { nome:180, crm:90, telefone:130 };              // largura fixa das fixas
 var canonColVis = {};
 (function(){
   try { canonColVis = JSON.parse(localStorage.getItem('canonColVis')||'{}'); } catch(e){ canonColVis = {}; }
@@ -623,18 +621,8 @@ var canonSort = {};   // por tabela: { thId: {k, dir} }
 
 function canonVisiveis(){ return CANON.filter(function(c){ return canonColVis[c.k]!==false; }); }
 
-function canonTH(k){
-  var stk = (k in CANON_STICKY);
-  var s = 'white-space:nowrap;cursor:pointer';
-  if(stk) s += ';position:sticky;left:'+CANON_STICKY[k]+'px;z-index:3;width:'+CANON_W[k]+'px;background:#f8f8f6';
-  return s;
-}
-function canonTD(k){
-  var stk = (k in CANON_STICKY);
-  var s = '';
-  if(stk) s = 'position:sticky;left:'+CANON_STICKY[k]+'px;z-index:1;width:'+CANON_W[k]+'px;background:inherit';
-  return s;
-}
+function canonTH(k){ return 'white-space:nowrap;cursor:pointer'; }
+function canonTD(k){ return ''; }
 
 function canonRender(thId, tbId, rows){
   var vis = canonVisiveis();
@@ -656,7 +644,8 @@ function canonRender(thId, tbId, rows){
     return '<tr>'+vis.map(function(c){
       var v = r[c.k]==null ? '' : r[c.k];
       var extra = (c.k==='email'||c.k==='subespecialidade'||c.k==='macro'||c.k==='obs'||c.k==='instituicao') ? 'font-size:11px;' : '';
-      return '<td style="'+extra+canonTD(c.k)+'">'+v+'</td>';
+      if (['crm','uf','telefone','whatsapp','cpf','situacao','dt_inicio','dt_termino','dt_emissao'].indexOf(c.k) >= 0) extra += 'white-space:nowrap;';
+      return '<td style="'+extra+'">'+v+'</td>';
     }).join('')+'</tr>';
   }).join('');
 }
