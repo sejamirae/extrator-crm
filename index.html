@@ -662,7 +662,7 @@ var canonReRender = {};   // thId -> função que re-renderiza a aba
 function canonColMenuHTML(menuId){
   return CANON.map(function(c){
     return '<label class="ddi" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="event.stopPropagation()">'+
-      '<input type="checkbox" style="width:auto;margin:0" '+(canonColVis[c.k]!==false?'checked':'')+' onchange="canonToggleCol(\''+c.k+'\')"> '+c.l+'</label>';
+      '<input type="checkbox" style="width:auto;margin:0;-webkit-appearance:auto;appearance:auto;accent-color:var(--teal)" '+(canonColVis[c.k]!==false?'checked':'')+' onchange="canonToggleCol(\''+c.k+'\')"> '+c.l+'</label>';
   }).join('');
 }
 function canonToggleCol(k){
