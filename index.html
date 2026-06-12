@@ -1107,7 +1107,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       if(ocorr) p.set('ocorr',ocorr);
       if(ini) p.set('ini',ini);
       if(fim) p.set('fim',fim);
-      try{var r=await fetch(API+'/certificados?'+p,{signal:ctrl.signal});clearTimeout(t);return await r.json();}
+      try{var r=await fetch(API+'/certificados?'+p,{signal:ctrl.signal,headers:getAuthHeaders()});clearTimeout(t);return await r.json();}
       catch(e){clearTimeout(t);return{dados:[]};}
     }));
 
@@ -2875,9 +2875,10 @@ async function reumaBuscar() {
         if (totalCid === null) totalCid = d.total || 0;
         var got = d.associados || [];
         got.forEach(function(a){ if (a.slug && !vistos[a.slug]) { vistos[a.slug] = 1; lista.push(a); } });
-        var pctL = totalCid ? Math.round(lista.length / totalCid * 100) : 0;
-        var tmpL = ''; try { tmpL = tempoRestante('reuma-lista', lista.length, totalCid || 0); } catch(e) {}
-        reumaLog((pctL ? pctL + '% — ' : '') + lista.length + ' associado' + (lista.length===1?'':'s') + ' encontrado' + (lista.length===1?'':'s') + (ufsAlvo.length > 1 ? ' (UF ' + (ui+1) + '/' + ufsAlvo.length + ')' : '') + tmpL, 'i');
+        var totalUFs = ufsAlvo.length;
+        var pctU = Math.round(((ui + (pagina * 100 >= (totalCid||0) ? 1 : 0.5)) / totalUFs) * 100);
+        var tmpL = ''; try { tmpL = tempoRestante('reuma-lista', ui + 1, totalUFs); } catch(e) {}
+        reumaLog(pctU + '% — ' + lista.length + ' associados encontrados (UF ' + (ui+1) + '/' + totalUFs + ')' + tmpL, 'i');
         if (!got.length || (totalCid && (pagina * 100) >= totalCid)) break;
         pagina++;
         if (pagina > 200) break;
@@ -2923,7 +2924,7 @@ async function reumaBuscar() {
       feito += lote.length;
       var tmpD = ''; try { tmpD = tempoRestante('reuma-det', feito, slugs.length); } catch(e) {}
       reumaLog('Detalhes: ' + Math.round(feito / slugs.length * 100) + '% (' + feito + '/' + slugs.length + ')' + tmpD, 'i');
-      reumaRender(reumaDadosVisiveis());
+      reumaRender(reumaRows);
     }
 
     if (didEmail && didSenha) {
@@ -2965,7 +2966,7 @@ async function reumaBuscar() {
           dn += grupo.length;
           var tmpN = ''; try { tmpN = tempoRestante('reuma-nome', dn, semCrm.length); } catch(e) {}
           reumaLog('DoctorID (CRM por nome): ' + Math.round(dn / semCrm.length * 100) + '% — ' + ach + ' achados' + tmpN, 'i');
-          reumaRender(reumaDadosVisiveis());
+          reumaRender(reumaRows);
         }
       }
 
@@ -3001,7 +3002,7 @@ async function reumaBuscar() {
           df += loteC.length;
           var tmpC = ''; try { tmpC = tempoRestante('reuma-crm', df, crms.length); } catch(e) {}
           reumaLog('DoctorID (contatos por CRM): ' + Math.round(df / crms.length * 100) + '% (' + df + '/' + crms.length + ')' + tmpC, 'i');
-          reumaRender(reumaDadosVisiveis());
+          reumaRender(reumaRows);
         }
       }
     }
