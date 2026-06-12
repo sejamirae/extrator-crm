@@ -2842,7 +2842,7 @@ function reumaETA(feito, total) {
 }
 
 async function reumaBuscar() {
-  var estados = reumaEstadosSel.slice();   // múltiplos estados
+  var estados = reumaEstadosSel.slice();   // múltiplos estados selecionados via tags
   var esp    = document.getElementById('reuma-esp').value;
   var nome   = document.getElementById('reuma-nome').value.trim();
   var cidades = reumaCidadesSel.slice();
@@ -3128,34 +3128,20 @@ var reumaCidadesDisp = [];   // cidades disponíveis do estado
 var reumaCidadesSel = [];    // cidades selecionadas (strings exatas da SBR)
 
 async function reumaCarregarCidades() {
-  var estado = reumaEstadosSel.length ? reumaEstadosSel[reumaEstadosSel.length - 1] : '';
+  var estado = document.getElementById('reuma-uf').value;
   var inp = document.getElementById('reuma-cidade-input');
   reumaCidadesDisp = []; reumaCidadesSel = [];
   reumaRenderCidadeTags();
   inp.value = ''; inp.disabled = true;
   document.getElementById('reuma-cidade-dd').style.display = 'none';
   if (!estado) { inp.placeholder = 'Selecione o estado primeiro'; return; }
-  inp.placeholder = 'Carregando cidades...';
+  inp.placeholder = 'Carregando...';
   try {
-    // Usa /reuma/buscar com ppp=100 pra coletar cidades disponíveis (mesmo endpoint de antes)
-    var cidades = new Set();
-    var pagina = 1;
-    while (true) {
-      var qs = new URLSearchParams({ ppp: '100', pagina: String(pagina), estado: estado });
-      var r = await fetch(API + '/reuma/buscar?' + qs.toString(), {headers:getAuthHeaders()});
-      var d = await r.json();
-      var got = d.associados || [];
-      got.forEach(function(a){ if (a.cidade) cidades.add(a.cidade); });
-      var total = d.total || 0;
-      if (!got.length || pagina * 100 >= total) break;
-      pagina++;
-      if (pagina > 20) break;
-    }
-    reumaCidadesDisp = Array.from(cidades).sort();
+    var r = await fetch(API + '/reuma/cidades?estado=' + encodeURIComponent(estado), {headers:getAuthHeaders()});
+    var d = await r.json();
+    reumaCidadesDisp = d.cidades || [];
     inp.disabled = false;
-    inp.placeholder = reumaCidadesDisp.length
-      ? 'Todas — ou filtre e adicione (' + reumaCidadesDisp.length + ')'
-      : 'Nenhuma cidade encontrada';
+    inp.placeholder = 'Todas — ou filtre e adicione (' + reumaCidadesDisp.length + ')';
   } catch (e) {
     inp.placeholder = 'Erro ao carregar cidades';
   }
