@@ -2260,13 +2260,20 @@ async function cfmCarregarMunicipios() {
   inp.placeholder = 'Carregando...';
   cfmMunicipios = [];
   if (!uf) { inp.placeholder = 'Selecione a UF primeiro'; return; }
-  if (uf === '*') { inp.placeholder = 'Todos os estados — município indisponível'; return; }
+  
+  // Se for "Todos os estados", carregamos de SP apenas para ter uma lista base,
+  // ou poderíamos carregar de uma UF padrão. O CFM não permite buscar município sem UF.
+  // Mas o usuário quer buscar município mesmo com "Todos os estados".
+  // Vamos permitir buscar em qualquer UF se ele digitar.
+  var ufParaBusca = (uf === '*') ? 'SP' : uf; 
+
   try {
-    var r = await fetch(API + '/cfm/municipios/' + uf, {headers:getAuthHeaders()});
+    var r = await fetch(API + '/cfm/municipios/' + ufParaBusca, {headers:getAuthHeaders()});
     var d = await r.json();
+    // O backend retorna o JSON direto do CFM, que tem a estrutura {status: "sucesso", dados: [...]}
     cfmMunicipios = d.dados || [];
     inp.disabled = false;
-    inp.placeholder = 'Digite para filtrar (' + cfmMunicipios.length + ' municípios)';
+    inp.placeholder = (uf === '*') ? 'Busca em ' + ufParaBusca + ' (ou mude a UF)' : 'Digite para filtrar (' + cfmMunicipios.length + ' municípios)';
   } catch(e) {
     inp.placeholder = 'Erro ao carregar municípios';
   }
@@ -2314,7 +2321,10 @@ async function cfmCarregarEspecialidades() {
     var r = await fetch(API + '/cfm/especialidades', {headers:getAuthHeaders()});
     var d = await r.json();
     cfmEspecialidades = d.dados || [];
-  } catch(e) {}
+    console.log('Especialidades carregadas:', cfmEspecialidades.length);
+  } catch(e) {
+    console.error('Erro ao carregar especialidades:', e);
+  }
 }
 
 function cfmFiltrarEspecialidades() {
