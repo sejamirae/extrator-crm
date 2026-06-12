@@ -2672,8 +2672,9 @@ function cfmExportXL() {
 // ── Limpar aba CFM ────────────────────────────────────────────────────
 function cfmLimpar() {
   cfmRows=[]; cfmRowsView=[]; cfmContatoCache={};
-  cfmCidadesSel=[]; cfmEspSel=[];
+  cfmUFsSel=[]; cfmCidadesSel=[]; cfmEspSel=[];
   cfmPaginaAtual=1; cfmTotalPaginas=1; cfmTotalRegistros=0; cfmCidadeAtual='';
+  cfmRenderUFTags();
   document.getElementById('cfm-res').classList.add('hidden');
   document.getElementById('cfm-log').style.display='none';
   document.getElementById('btn-cfm-limpar').style.display='none';
@@ -2687,6 +2688,8 @@ function cfmLimpar() {
   document.getElementById('cfm-esp-input').value='';
   var mt=document.getElementById('cfm-mun-tags'); if(mt) mt.innerHTML='';
   var et=document.getElementById('cfm-esp-tags'); if(et) et.innerHTML='';
+  var inpM = document.getElementById('cfm-mun-input');
+  if (inpM) { inpM.disabled = true; inpM.placeholder = 'Selecione a UF primeiro'; }
 }
 
 // ── Token CFM nas Configurações ──────────────────────────────────────
