@@ -2903,7 +2903,7 @@ async function reumaBuscar() {
     var bySlug = {};
     reumaRows.forEach(function(a){ bySlug[a.slug] = a; });
     var slugs = reumaRows.map(function(a){ return a.slug; }).filter(Boolean);
-    var LOTE = 40, feito = 0;
+    var LOTE = 15, feito = 0;
     for (var i = 0; i < slugs.length; i += LOTE) {
       var lote = slugs.slice(i, i + LOTE);
       try {
@@ -2919,6 +2919,8 @@ async function reumaBuscar() {
           a.rqe = det.rqe || '';
           a.telefone = (det.telefones || []).join(' / ');
           a.endereco = (det.enderecos || []).join(' | ');
+          a.telefones = det.telefones || [];
+          a.enderecos = det.enderecos || [];
         });
       } catch (e) { /* segue */ }
       feito += lote.length;
