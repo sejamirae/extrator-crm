@@ -1025,7 +1025,7 @@ async function pesquisar(){
         var p2=new URLSearchParams(params);
         p2.set('inst',inst.id);
         try{
-          var r=await fetch(API+'/certificados?'+p2.toString(, {headers:getAuthHeaders()}));
+          var r=await fetch(API+'/certificados?'+p2.toString(), {headers:getAuthHeaders()});
           var d=await r.json();
           (d.dados||[]).forEach(function(row){
             var k=(row['Nº Certificado']||'')+(row['CRM']||'');
@@ -1046,7 +1046,7 @@ async function pesquisar(){
       if(medico) params.set('medico',medico.toUpperCase());
       if(crm) params.set('crm',crm);
       if(cert) params.set('cert',cert);
-      var r=await fetch(API+'/certificados?'+params.toString(, {headers:getAuthHeaders()}));
+      var r=await fetch(API+'/certificados?'+params.toString(), {headers:getAuthHeaders()});
       var data=await r.json();
       if(data.error) throw new Error(data.error);
       if((data.total||0)===0){ setLog('Nenhum certificado encontrado.',''); pararFaviconLoader(); }
@@ -1331,7 +1331,7 @@ async function iniciarMultiCheck(d){
     if(loteNumM===1) tempoRestante('multi',1,totalLotesM);
     setLog('Múltiplos certificados: '+Math.round(loteNumM/totalLotesM*100)+'%'+tempoRestante('multi',loteNumM,totalLotesM),'i',loteNumM<=2);
     try{
-      var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent, {headers:getAuthHeaders()}).join(','),{signal:AbortSignal.timeout(25000)});
+      var r=await fetch(API+'/contar_bulk?crms='+lote.map(encodeURIComponent).join(','),{signal:AbortSignal.timeout(25000), headers:getAuthHeaders()});
       var data=await r.json();
       if(!data.error){
         Object.keys(data).forEach(function(crm){
@@ -1407,7 +1407,7 @@ async function iniciarContatos(d){
     setLog('Contatos: '+Math.round(loteNum/totalLotes*100)+'%'+tempoRestante('contatos',loteNum,totalLotes),'i',loteNum<=2);
     try{
       var p=new URLSearchParams({email:didEmail,senha:didSenha,crms:lote.join(',')});
-      var r=await fetch(API+'/telefone_bulk?'+p.toString(, {headers:getAuthHeaders()}));
+      var r=await fetch(API+'/telefone_bulk?'+p.toString(), {headers:getAuthHeaders()});
       var data=await r.json();
       if(data.error){
         // Tenta sessão nova na próxima iteração
@@ -1455,7 +1455,7 @@ async function abrirModal(crm){
   document.getElementById('m-body').innerHTML='<div style="color:var(--muted);font-size:12px;padding:20px 0">Buscando certificações</div>';
   document.getElementById('modal').classList.add('open');
   if(!crmCache[crm]){
-    try{var r=await fetch(API+'/certificados?crm='+encodeURIComponent(crm, {headers:getAuthHeaders()}));var d=await r.json();crmCache[crm]=d.dados||[];}
+    try{var r=await fetch(API+'/certificados?crm='+encodeURIComponent(crm), {headers:getAuthHeaders()});var d=await r.json();crmCache[crm]=d.dados||[];}
     catch(e){document.getElementById('m-body').innerHTML='<div style="color:var(--red)">Erro ao carregar.</div>';return;}
   }
   var certs=crmCache[crm];if(!certs.length)return;
@@ -1494,7 +1494,7 @@ async function toggleFiltroInst(){
   var paraBuscar=[];var seen={};
   rowsOrig.forEach(function(r){var c=r['CRM']||'';if(c&&crmMulti[c]&&!crmCache[c]&&!seen[c]){seen[c]=1;paraBuscar.push(c);}});
   await Promise.all(paraBuscar.map(async function(crm){
-    try{var r=await fetch(API+'/certificados?crm='+encodeURIComponent(crm, {headers:getAuthHeaders()}));var d=await r.json();crmCache[crm]=d.dados||[];}catch(e){}
+    try{var r=await fetch(API+'/certificados?crm='+encodeURIComponent(crm), {headers:getAuthHeaders()});var d=await r.json();crmCache[crm]=d.dados||[];}catch(e){}
   }));
   var f=rowsOrig.filter(function(r){
     var c=r['CRM']||'';
@@ -2531,7 +2531,7 @@ async function cfmIniciarContatos(dados) {
     cfmLog('Contatos: ' + Math.round(loteNum/totalLotes*100) + '%' + tempoRestante('cfm-contatos', loteNum, totalLotes), 'i', true);
     try {
       var p = new URLSearchParams({email:didEmail, senha:didSenha, crms:lote.join(',')});
-      var r = await fetch(API+'/telefone_bulk?'+p.toString(, {headers:getAuthHeaders()}));
+      var r = await fetch(API+'/telefone_bulk?'+p.toString(), {headers:getAuthHeaders()});
       var d = await r.json();
       if (d.error) {
         lote.forEach(function(crm){if(!cfmContatoCache[crm])cfmContatoCache[crm]={telefone:'',email:'',cpf:'',especialidades:[],macrorregioes:[]};});
@@ -2832,7 +2832,7 @@ async function reumaBuscar() {
         if (cid)    qs.set('cidade', cid);
         if (esp)    qs.set('especialidade', esp);
         if (nome)   qs.set('nome', nome);
-        var r = await fetch(API + '/reuma/buscar?' + qs.toString(, {headers:getAuthHeaders()}));
+        var r = await fetch(API + '/reuma/buscar?' + qs.toString(), {headers:getAuthHeaders()});
         var d = await r.json();
         if (d.error) { reumaLog('Erro: ' + d.error, ''); break; }
         if (totalCid === null) totalCid = d.total || 0;
@@ -2941,7 +2941,7 @@ async function reumaBuscar() {
           var loteC = crms.slice(j, j + BULK);
           try {
             var pc = new URLSearchParams({ email: didEmail, senha: didSenha, crms: loteC.join(',') });
-            var rc = await fetch(API + '/telefone_bulk?' + pc.toString(, {headers:getAuthHeaders()}));
+            var rc = await fetch(API + '/telefone_bulk?' + pc.toString(), {headers:getAuthHeaders()});
             var dc = await rc.json();
             if (!dc.error) {
               Object.keys(dc).forEach(function(crm){
