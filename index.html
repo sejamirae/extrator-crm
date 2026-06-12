@@ -2992,9 +2992,11 @@ async function reumaBuscar() {
 
       // 4. DoctorID por CRM — telefone/CPF/especialidade/macro dos que têm CRM e ainda sem dados
       var byCrm = {};
+      var nomePorCrm = {};
       reumaRows.forEach(function(a){
         if (a.crm && !(a.did_email || a.did_tel || a.did_cpf)) {
           (byCrm[a.crm] = byCrm[a.crm] || []).push(a);
+          if (!nomePorCrm[a.crm]) nomePorCrm[a.crm] = a.nome;
         }
       });
       var crms = Object.keys(byCrm);
@@ -3002,8 +3004,9 @@ async function reumaBuscar() {
         var BULK = 8, df = 0;
         for (var j = 0; j < crms.length; j += BULK) {
           var loteC = crms.slice(j, j + BULK);
+          var loteN = loteC.map(function(c) { return nomePorCrm[c] || ''; });
           try {
-            var pc = new URLSearchParams({ email: didEmail, senha: didSenha, crms: loteC.join(',') });
+            var pc = new URLSearchParams({ email: didEmail, senha: didSenha, crms: loteC.join(','), nomes: loteN.join(',') });
             var rc = await fetch(API + '/telefone_bulk?' + pc.toString(), {headers:getAuthHeaders()});
             var dc = await rc.json();
             if (!dc.error) {
