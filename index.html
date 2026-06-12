@@ -369,6 +369,7 @@ body.dark #login-screen input::placeholder{color:#606060}
       <label>UF</label>
       <select id="cfm-uf" onchange="cfmCarregarMunicipios()">
         <option value="">— Selecionar</option>
+        <option value="TODOS">🇧🇷 Todos os estados</option>
         <option>AC</option><option>AL</option><option>AM</option><option>AP</option>
         <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
         <option>GO</option><option>MA</option><option>MG</option><option>MS</option>
@@ -456,10 +457,11 @@ body.dark #login-screen input::placeholder{color:#606060}
   <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">Associados da Sociedade Brasileira de Reumatologia com Título de Especialista. Lista pública do site da SBR; o detalhe (CRM, RQE, telefone, endereço) é lido do perfil de cada associado.</div>
 
   <div class="g2" style="margin-bottom:10px">
-    <div class="field" style="margin:0">
+    <div class="field" style="margin:0;position:relative">
       <label>Estado</label>
-      <select id="reuma-uf" onchange="reumaCarregarCidades()">
-        <option value="">Todos os estados</option>
+      <div id="reuma-uf-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;min-height:0"></div>
+      <select id="reuma-uf" onchange="reumaAdicionarEstado()">
+        <option value="">— Selecionar (vazio = todos)</option>
         <option value="acre">Acre</option><option value="alagoas">Alagoas</option>
         <option value="amapa">Amapá</option><option value="amazonas">Amazonas</option>
         <option value="bahia">Bahia</option><option value="ceara">Ceará</option>
@@ -961,7 +963,7 @@ async function pesquisar(){
 
   // Acorda servidor
   setLog('Conectando ao servidor','i');
-  try{await fetch(API+'/',{signal:AbortSignal.timeout(60000),headers:getAuthHeaders()});}catch(e){}
+  try{await fetch(API+'/',{signal:AbortSignal.timeout(60000)});}catch(e){}
   document.getElementById('log').style.display='none';
 
   // Garante que combos das UFs selecionadas estão carregados
@@ -1083,7 +1085,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
       if(ocorr) p.set('ocorr',ocorr);
       if(ini) p.set('ini',ini);
       if(fim) p.set('fim',fim);
-      try{var r=await fetch(API+'/certificados?'+p,{signal:ctrl.signal,headers:getAuthHeaders()});clearTimeout(t);return await r.json();}
+      try{var r=await fetch(API+'/certificados?'+p,{signal:ctrl.signal});clearTimeout(t);return await r.json();}
       catch(e){clearTimeout(t);return{dados:[]};}
     }));
 
@@ -1560,14 +1562,12 @@ async function vs(){
     var r=await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chave:chave})});
     var data=await r.json();
     if(r.ok && data.token){
-      _authToken=data.token;
-      sessionStorage.setItem('auth_token',_authToken);
+      _authToken=data.token; sessionStorage.setItem('auth_token',_authToken);
       document.getElementById('ls').style.display='none';
       document.getElementById('ac').style.display='block';
     }else{
       document.getElementById('se').style.display='block';
-      document.getElementById('si').value='';
-      document.getElementById('si').focus();
+      document.getElementById('si').value=''; document.getElementById('si').focus();
     }
   }catch(e){
     document.getElementById('se').style.display='block';
@@ -2346,18 +2346,21 @@ document.addEventListener('click', function(e) {
 // ── Busca principal ───────────────────────────────────────────────────
 async function cfmBuscar() {
   var token = cfmGetToken();
-  var uf    = document.getElementById('cfm-uf').value;
+  var ufSel = document.getElementById('cfm-uf').value;
   var sit   = document.getElementById('cfm-sit').value;
   var tipo  = document.getElementById('cfm-tipo').value;
 
   if (!token) { alert('Configure o token CFM em Configurações.'); return; }
-  if (!uf)    { alert('Selecione a UF.'); return; }
-  if (!cfmCidadesSel.length) { alert('Adicione ao menos um município.'); return; }
+  if (!ufSel) { alert('Selecione a UF.'); return; }
 
-  // Combina cidades × especialidades (ou cidade × sem-filtro se nenhuma esp)
+  var UF_LISTA = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
+  var ufsParaBuscar = ufSel === 'TODOS' ? UF_LISTA : [ufSel];
+
+  // Combina cidades × especialidades (sem cidade = toda a UF)
   var combos = [];
   var esps = cfmEspSel.length ? cfmEspSel : [{id:'', nome:''}];
-  cfmCidadesSel.forEach(function(mun) {
+  var muns = cfmCidadesSel.length ? cfmCidadesSel : [{id:'', nome:'Toda a UF'}];
+  muns.forEach(function(mun) {
     esps.forEach(function(esp) {
       combos.push({munId: mun.id, munNome: mun.nome, espId: esp.id, espNome: esp.nome});
     });
@@ -2378,11 +2381,14 @@ async function cfmBuscar() {
   document.getElementById('btn-cfm-limpar').style.display = '';
   cfmLog('Consultando CFM...', 'i');
 
-  // ── Itera sobre cada combinação cidade × especialidade ──────────
+  // ── Itera sobre cada UF e combinação cidade × especialidade ──────────
   var totalGeral = 0;
+  for (var ufi = 0; ufi < ufsParaBuscar.length; ufi++) {
+  var uf = ufsParaBuscar[ufi];
+  if (ufsParaBuscar.length > 1) cfmLog('Buscando UF ' + uf + ' (' + (ufi+1) + '/' + ufsParaBuscar.length + ')...', 'i');
   for (var ci = 0; ci < combos.length; ci++) {
     var combo = combos[ci];
-    var prefixo = combos.length > 1 ? '['+combo.munNome+(combo.espNome?' / '+combo.espNome:'')+'] ' : '';
+    var prefixo = (ufsParaBuscar.length > 1 ? '['+uf+'] ' : '') + (combos.length > 1 ? '['+combo.munNome+(combo.espNome?' / '+combo.espNome:'')+'] ' : '');
 
     // Página 1 — descobre total desta combo
     var r1, d1;
@@ -2438,6 +2444,8 @@ async function cfmBuscar() {
     }
     if (tokenExpirou) break;
   }
+  if (tokenExpirou) break;
+  } // fim loop UFs
 
   document.getElementById('btn-cfm-buscar').disabled = false;
   document.getElementById('sp-cfm').classList.add('hidden');
@@ -2796,10 +2804,10 @@ function reumaLog(msg, tipo, force) {
 }
 
 async function reumaBuscar() {
-  var estado = document.getElementById('reuma-uf').value;
+  var estadosSel = reumaEstadosSel.slice();  // [] = todos os estados
   var esp    = document.getElementById('reuma-esp').value;
   var nome   = document.getElementById('reuma-nome').value.trim();
-  var cidades = reumaCidadesSel.slice();   // [] = estado inteiro
+  var cidades = reumaCidadesSel.slice();
 
   reumaRows = []; reumaRowsView = []; reumaSemTelOn = false; reumaEnriquecendo = false;
   document.getElementById('btn-reuma-buscar').disabled = true;
@@ -2813,9 +2821,12 @@ async function reumaBuscar() {
   reumaLog('Consultando SBR...', 'i');
 
   try {
-    // 1. Lista — uma busca por cidade selecionada (ou o estado inteiro), com dedupe por slug
+    // 1. Lista — itera estados × cidades, com dedupe por slug
+    var estadosAlvo = estadosSel.length ? estadosSel : [''];
     var alvos = cidades.length ? cidades : [''];
     var vistos = {}, lista = [];
+    for (var ei = 0; ei < estadosAlvo.length; ei++) {
+      var estado = estadosAlvo[ei];
     for (var ci = 0; ci < alvos.length; ci++) {
       var cid = alvos[ci];
       var pagina = 1, totalCid = null;
@@ -2836,7 +2847,8 @@ async function reumaBuscar() {
         pagina++;
         if (pagina > 200) break;
       }
-    }
+    } // fim cidades
+    } // fim estados
 
     if (!lista.length) {
       reumaLog('Nenhum associado encontrado para o filtro.', '');
@@ -2934,7 +2946,7 @@ async function reumaBuscar() {
           var loteC = crms.slice(j, j + BULK);
           try {
             var pc = new URLSearchParams({ email: didEmail, senha: didSenha, crms: loteC.join(',') });
-            var rc = await fetch(API + '/telefone_bulk?' + pc.toString(), {headers:getAuthHeaders()});
+            var rc = await fetch(API + '/telefone_bulk?' + pc.toString());
             var dc = await rc.json();
             if (!dc.error) {
               Object.keys(dc).forEach(function(crm){
@@ -3030,11 +3042,47 @@ function reumaExportXL() {
 
 var REUMA_UF = {acre:'AC',alagoas:'AL',amapa:'AP',amazonas:'AM',bahia:'BA',ceara:'CE','distrito-federal':'DF','espirito-santo':'ES',goias:'GO',maranhao:'MA','mato-grosso':'MT','mato-grosso-do-sul':'MS','minas-gerais':'MG',para:'PA',paraiba:'PB',parana:'PR',pernambuco:'PE',piaui:'PI','rio-de-janeiro':'RJ','rio-grande-do-norte':'RN','rio-grande-do-sul':'RS',rondonia:'RO','santa-catarina':'SC','sao-paulo':'SP',sergipe:'SE',tocantins:'TO'};
 
-var reumaCidadesDisp = [];   // cidades disponíveis do estado
-var reumaCidadesSel = [];    // cidades selecionadas (strings exatas da SBR)
+var reumaCidadesDisp = [];
+var reumaCidadesSel = [];
+var reumaEstadosSel = [];  // estados selecionados como tags
+
+var REUMA_NOME_MAP = {
+  'acre':'Acre','alagoas':'Alagoas','amapa':'Amapá','amazonas':'Amazonas',
+  'bahia':'Bahia','ceara':'Ceará','distrito-federal':'DF','espirito-santo':'ES',
+  'goias':'Goiás','maranhao':'Maranhão','mato-grosso':'MT','mato-grosso-do-sul':'MS',
+  'minas-gerais':'MG','para':'Pará','paraiba':'Paraíba','parana':'Paraná',
+  'pernambuco':'PE','piaui':'Piauí','rio-de-janeiro':'RJ','rio-grande-do-norte':'RN',
+  'rio-grande-do-sul':'RS','rondonia':'RO','santa-catarina':'SC','sao-paulo':'SP',
+  'sergipe':'SE','tocantins':'TO'
+};
+
+function reumaAdicionarEstado() {
+  var sel = document.getElementById('reuma-uf');
+  var val = sel.value;
+  sel.value = '';
+  if (!val) return;
+  if (reumaEstadosSel.indexOf(val) >= 0) return;
+  reumaEstadosSel.push(val);
+  reumaRenderEstadoTags();
+  reumaCarregarCidades(val);
+}
+
+function reumaRemoverEstado(val) {
+  reumaEstadosSel = reumaEstadosSel.filter(function(e){ return e !== val; });
+  reumaRenderEstadoTags();
+}
+
+function reumaRenderEstadoTags() {
+  var el = document.getElementById('reuma-uf-tags');
+  if (!el) return;
+  el.innerHTML = reumaEstadosSel.map(function(val){
+    var label = REUMA_NOME_MAP[val] || val;
+    return '<span class="tag" onclick="reumaRemoverEstado(\'' + val + '\')">' + label + ' ×</span>';
+  }).join('');
+}
 
 async function reumaCarregarCidades() {
-  var estado = document.getElementById('reuma-uf').value;
+  var estado = reumaEstadosSel.length ? reumaEstadosSel[reumaEstadosSel.length-1] : document.getElementById('reuma-uf').value;
   var inp = document.getElementById('reuma-cidade-input');
   reumaCidadesDisp = []; reumaCidadesSel = [];
   reumaRenderCidadeTags();
@@ -3095,8 +3143,10 @@ function reumaLimpar() {
   document.getElementById('btn-reuma-st').classList.add('hidden');
   document.getElementById('btn-reuma-st').classList.remove('on');
   var _bcl = document.getElementById('btn-reuma-cols'); if (_bcl) { _bcl.classList.add('hidden'); _bcl.disabled = true; }
+  reumaEstadosSel = []; reumaRenderEstadoTags();
   reumaCidadesSel = []; reumaRenderCidadeTags();
-  var _rci = document.getElementById('reuma-cidade-input'); if (_rci) _rci.value = '';
+  document.getElementById('reuma-uf').value = '';
+  var _rci = document.getElementById('reuma-cidade-input'); if (_rci) { _rci.value = ''; _rci.disabled = true; _rci.placeholder = 'Selecione o estado primeiro'; }
   document.getElementById('reuma-nome').value = '';
 }
 </script>
