@@ -346,6 +346,10 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="btn btn-g hidden" id="btn-xl" onclick="exportXL()" disabled>Exportar XLSX</button>
     <button class="tog hidden" id="btn-st" onclick="toggleSemTel()" disabled><span class="track"></span>Ocultar médicos sem telefone</button>
     <button class="tog hidden" id="btn-fi" onclick="toggleFiltroInst()" disabled><span class="track"></span>Ocultar médicos com certificação mais recente em outra instituição</button>
+    <span style="position:relative;display:inline-block">
+      <button class="btn btn-o hidden" id="btn-cols" onclick="canonAbrirMenu('cols-dd')" disabled>Colunas</button>
+      <div id="cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+    </span>
   </div>
 </div>
 
@@ -1434,12 +1438,14 @@ async function iniciarContatos(d){
       var r=await fetch(API+'/telefone_bulk?'+p.toString(),{headers:getAuthHeaders()});
       var data=await r.json();
       if(data.error){
-        // Tenta sessão nova na próxima iteração
-        lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:''};});
+        lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:'',cpf:'',macro:''};});
       } else {
         Object.keys(data).forEach(function(crm){
           var info=data[crm]||{};
-          contatoCache[crm]={telefone:info.telefone||'',email:info.email||''};
+          contatoCache[crm]={
+            telefone:info.telefone||'', email:info.email||'',
+            cpf:info.cpf||'', macro:(info.macrorregioes||[]).join(' | ')
+          };
           rows.forEach(function(row,ri){
             if((row['CRM']||'')===crm){
               var tel=document.getElementById('tel-'+ri);
@@ -1451,7 +1457,7 @@ async function iniciarContatos(d){
         });
       }
     }catch(e){
-      lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:''};});
+      lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:'',cpf:'',macro:''};});
     }
     telDone+=lote.length;
     var com=Object.values(contatoCache).filter(function(c){return c.telefone||c.email;}).length;
@@ -1468,6 +1474,8 @@ async function iniciarContatos(d){
     // marcarFim FORA do if(statEl) para garantir execução
     if(telDone>=telTotal){
       marcarFim('contatos');
+      var btnC = document.getElementById('btn-cols');
+      if(btnC){ btnC.classList.remove('hidden'); btnC.disabled=false; canonColMenuHTML('cols-dd'); }
     }
   }
 }
@@ -2259,21 +2267,18 @@ async function cfmCarregarMunicipios() {
   inp.disabled = true;
   inp.placeholder = 'Carregando...';
   cfmMunicipios = [];
-  if (!uf) { inp.placeholder = 'Selecione a UF primeiro'; return; }
   
-  // Se for "Todos os estados", carregamos de SP apenas para ter uma lista base,
-  // ou poderíamos carregar de uma UF padrão. O CFM não permite buscar município sem UF.
-  // Mas o usuário quer buscar município mesmo com "Todos os estados".
-  // Vamos permitir buscar em qualquer UF se ele digitar.
-  var ufParaBusca = (uf === '*') ? 'SP' : uf; 
+  // Se "Todos os estados" estiver selecionado ou nenhuma UF específica, 
+  // permitimos buscar municípios usando SP como base para a lista, 
+  // mas o usuário pode pesquisar qualquer cidade.
+  var ufParaBusca = (uf === '*' || !uf) ? 'SP' : uf;
 
   try {
     var r = await fetch(API + '/cfm/municipios/' + ufParaBusca, {headers:getAuthHeaders()});
     var d = await r.json();
-    // O backend retorna o JSON direto do CFM, que tem a estrutura {status: "sucesso", dados: [...]}
     cfmMunicipios = d.dados || [];
     inp.disabled = false;
-    inp.placeholder = (uf === '*') ? 'Busca em ' + ufParaBusca + ' (ou mude a UF)' : 'Digite para filtrar (' + cfmMunicipios.length + ' municípios)';
+    inp.placeholder = (uf === '*' || !uf) ? 'Pesquisar município (ex: São Paulo)' : 'Filtrar em ' + uf + ' (' + cfmMunicipios.length + ' cidades)';
   } catch(e) {
     inp.placeholder = 'Erro ao carregar municípios';
   }
@@ -2538,7 +2543,7 @@ function cfmToCanon(r){
   return {
     nome: r.NM_MEDICO||'', crm: crm ? crm+'/'+(r.SG_UF||'') : '', uf: r.SG_UF||'',
     especialidade: espLimpa, subespecialidade: espRaw, instituicao:'',
-    cidade: r._cidade||cfmCidadeAtual||'', telefone: '', whatsapp: ct.telefone||'',
+    cidade: r.DS_CIDADE || r._cidade || cfmCidadeAtual || '', telefone: '', whatsapp: ct.telefone||'',
     email: ct.email||'', cpf: ct.cpf||'', situacao: r.SITUACAO||'',
     dt_registro: r.DT_INSCRICAO||'', dt_inicio:'', dt_termino:'', dt_emissao:'', rqe:'',
     macro:(ct.macrorregioes||[]).join(' | '), obs:''
@@ -2916,7 +2921,7 @@ async function reumaBuscar() {
     var bySlug = {};
     reumaRows.forEach(function(a){ bySlug[a.slug] = a; });
     var slugs = reumaRows.map(function(a){ return a.slug; }).filter(Boolean);
-    var LOTE = 15, feito = 0;
+    var LOTE = 30, feito = 0; // Aumentado o lote para ser mais rápido
     for (var i = 0; i < slugs.length; i += LOTE) {
       var lote = slugs.slice(i, i + LOTE);
       try {
@@ -2938,7 +2943,7 @@ async function reumaBuscar() {
       } catch (e) { /* segue */ }
       feito += lote.length;
       var tmpD = ''; try { tmpD = tempoRestante('reuma-det', feito, slugs.length); } catch(e) {}
-      reumaLog('Detalhes: ' + Math.round(feito / slugs.length * 100) + '% (' + feito + '/' + slugs.length + ')' + tmpD, 'i');
+      reumaLog('Enriquecendo dados: ' + Math.round(feito / slugs.length * 100) + '% (' + feito + '/' + slugs.length + ')' + tmpD, 'i');
       reumaRender(reumaRows);
     }
 
@@ -3071,7 +3076,8 @@ function reumaRender(dados) {
   canonReRender['reuma-tb'] = function(){ reumaRender(reumaDadosVisiveis()); };
   canonRender('reuma-th', 'reuma-tb', dados.map(reumaToCanon));
   var contatos = dados.filter(function(a){ return (a.did_tel && a.did_tel.trim()) || (a.did_email && a.did_email.trim()); }).length;
-  var marca = reumaEnriquecendo ? '<span class="spin"></span>' : ckSvg('var(--green)');
+  // Só mostra o spin de carregamento se o enriquecimento (DoctorID) já tiver começado
+  var marca = reumaEnriquecendo ? '<span class="spin"></span>' : (contatos > 0 ? ckSvg('var(--green)') : '');
   document.getElementById('reuma-stats').innerHTML =
     '<div class="stat"><div class="sv">' + dados.length + '</div><div class="sl">Reumatologistas</div></div>' +
     '<div class="stat"><div class="sv"><span style="color:var(--green)">' + contatos + '</span> ' + marca + '</div><div class="sl">Contatos</div></div>';
