@@ -86,6 +86,7 @@ tr:hover td{background:#f8f8f6}
 .tag{display:inline-flex;align-items:center;gap:4px;background:var(--teal);color:#fff;font-size:11px;padding:3px 8px;border-radius:2px;cursor:pointer;margin:2px;letter-spacing:.1px}
 .tag:hover{background:var(--teal2)}
 .dd{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.cols-dd{right:0;left:auto;min-width:180px;border-top:1px solid var(--border);border-radius:var(--r)}
 .ddi{padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);transition:background .1s}
 .ddi:last-child{border-bottom:none}
 .ddi:hover{background:#f4f4f2}
@@ -319,7 +320,7 @@ body.dark #login-screen input::placeholder{color:#606060}
         <div id="ex-inst-dd" class="dd"></div>
       </div>
       <div class="field" style="margin:0;position:relative">
-        <label>Programa</label>
+        <label>Especialidade</label>
         <div id="prog-tags" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;min-height:0"></div>
         <input type="text" id="ex-prog-input" placeholder="Nome parcial" autocomplete="off" disabled oninput="filtrarProgramas()">
         <div id="ex-prog-dd" class="dd"></div>
@@ -348,7 +349,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="tog hidden" id="btn-fi" onclick="toggleFiltroInst()" disabled><span class="track"></span>Ocultar médicos com certificação mais recente em outra instituição</button>
     <span style="position:relative;display:inline-block">
       <button class="btn btn-o hidden" id="btn-cols" onclick="canonAbrirMenu('cols-dd')" disabled>Colunas</button>
-      <div id="cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+      <div id="cols-dd" class="dd cols-dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
     </span>
   </div>
 </div>
@@ -438,7 +439,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="tog hidden" id="btn-cfm-sesp" onclick="cfmToggleSemEsp()" disabled><span class="track"></span>Apenas sem especialidade</button>
     <span style="position:relative;display:inline-block">
       <button class="btn btn-o hidden" id="btn-cfm-cols" onclick="canonAbrirMenu('cfm-cols-dd')" disabled>Colunas</button>
-      <div id="cfm-cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+      <div id="cfm-cols-dd" class="dd cols-dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
     </span>
   </div>
 </div>
@@ -524,7 +525,7 @@ body.dark #login-screen input::placeholder{color:#606060}
     <button class="tog hidden" id="btn-reuma-st" onclick="reumaToggleSemTel()" disabled><span class="track"></span>Ocultar sem telefone</button>
     <span style="position:relative;display:inline-block">
       <button class="btn btn-o hidden" id="btn-reuma-cols" onclick="canonAbrirMenu('reuma-cols-dd')" disabled>Colunas</button>
-      <div id="reuma-cols-dd" class="dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
+      <div id="reuma-cols-dd" class="dd cols-dd" style="left:auto;right:0;width:200px;border-top:1px solid var(--border);border-radius:var(--r)"></div>
     </span>
   </div>
 </div>
@@ -613,7 +614,7 @@ var CANON = [
   {k:'crm',             l:'CRM'},
   {k:'uf',              l:'UF'},
   {k:'especialidade',   l:'Especialidade'},
-  {k:'subespecialidade',l:'Subespecialidade'},
+  {k:'subespecialidade',l:'Especialidade (DoctorID)'},
   {k:'instituicao',     l:'Instituição'},
   {k:'cidade',          l:'Cidade'},
   {k:'telefone',        l:'Telefone'},
@@ -689,7 +690,10 @@ function canonToggleCol(k){
 }
 function canonAbrirMenu(id){
   var dd = document.getElementById(id);
-  dd.style.display = dd.style.display==='block' ? 'none' : 'block';
+  var isVisible = dd.style.display === 'block';
+  // Fecha todos os outros dropdowns de colunas
+  document.querySelectorAll('.dd').forEach(function(el){ if(el.id.indexOf('cols-dd') >= 0) el.style.display = 'none'; });
+  dd.style.display = isVisible ? 'none' : 'block';
 }
 function fmt(v){if(!v)return '';var p=v.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function parseDate(s){if(!s)return new Date(0);var p=s.split('/');return new Date(+p[2],+p[1]-1,+p[0]);}
@@ -937,6 +941,10 @@ function renderProgTags(){
 document.addEventListener('click',function(e){
   if(!e.target.closest('#ex-inst-input')&&!e.target.closest('#ex-inst-dd')) document.getElementById('ex-inst-dd').style.display='none';
   if(!e.target.closest('#ex-prog-input')&&!e.target.closest('#ex-prog-dd')) document.getElementById('ex-prog-dd').style.display='none';
+  // Fechar dropdowns de colunas ao clicar fora
+  if(!e.target.closest('.btn-cols') && !e.target.closest('.dd')) {
+    document.querySelectorAll('.dd').forEach(function(el){ if(el.id.indexOf('cols-dd') >= 0) el.style.display = 'none'; });
+  }
 });
 
 // ── Reset completo ────────────────────────────────────────────────────────────
@@ -1136,39 +1144,7 @@ async function buscarPorCombos(combos,medico,crm,cert,ocorr,ini,fim){
 
     // Exibe progressivamente
     if(novos.length>0){
-      if(!colsInicializadas){
-        // Inicializa tabela com primeiros resultados
-        var cols=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
-        var colsEx=cols.concat(['Telefone','Email']);
-        document.getElementById('stats').innerHTML=
-          '<div class="stat"><div class="sv" id="sv-count">'+todos.length+'</div><div class="sl">Certificados</div></div>';
-        document.getElementById('th').innerHTML=colsEx.map(function(c){return '<th>'+lbl(c)+'</th>';}).join('');
-        document.getElementById('tb').innerHTML='';
-        document.getElementById('res').classList.remove('hidden');
-        document.getElementById('btn-limpar').style.display='';
-        colsInicializadas=true;
-      }
-      // Acrescenta novas linhas
-      var tb=document.getElementById('tb');
-      var cols2=COLS.filter(function(c){return todos[0]&&(c in todos[0]);});
-      var colsEx2=cols2.concat(['Telefone','Email']);
-      var offset=todos.length-novos.length;
-      novos.forEach(function(row,j){
-        var i2=offset+j;
-        var crm2=row['CRM']||'';
-        var tds=colsEx2.map(function(c){
-          if(c==='CRM') return '<td style="white-space:nowrap"><span id="b-'+i2+'"></span>'+crm2+'</td>';
-          if(c==='Telefone') return '<td id="tel-'+i2+'"></td>';
-          if(c==='Email') return '<td id="eml-'+i2+'" style="font-size:11px"></td>';
-          return '<td>'+(row[c]||'')+'</td>';
-        });
-        var tr=document.createElement('tr');
-        tr.innerHTML=tds.join('');
-        tb.appendChild(tr);
-      });
-      // Atualiza contador
-      var sv=document.getElementById('sv-count');
-      if(sv) sv.textContent=todos.length;
+      renderTabela(todos);
     }
   }
 
@@ -1268,52 +1244,41 @@ function tempoRestante(chave, feitos, total){
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
+function sisToCanon(r){
+  var crm = r['CRM'] || '';
+  var ct = contatoCache[crm] || {};
+  return {
+    nome: r['Médico']||'', crm: crm, uf: r['UF']||'',     especialidade: r['Programa']||'',
+    subespecialidade: (ct.especialidades||[]).join(', '), instituicao: r['Instituição']||'', cidade: '',
+    telefone: '', whatsapp: ct.telefone||'', email: ct.email||'', cpf: ct.cpf||'',
+    situacao: '', dt_registro: '', dt_inicio: r['Início']||'', dt_termino: r['Término']||'',
+    dt_emissao: r['Emissão do Certificado']||'', rqe: '', macro: ct.macro||'', obs: r['Informações Adicionais']||''
+  };
+}
+
 function renderTabela(d,instNm,progNm){
   rowsOrig=d.slice(); rowsView=d.slice();
-  var cols=COLS.filter(function(c){return d[0]&&(c in d[0]);});
-  var colsEx=cols.concat(['Telefone','Email']);
-
-  // Stats: instituição/programa antes do count
   var statsHtml='';
   if(instNm) statsHtml+='<div class="stat" style="flex:2"><div class="sv" style="font-size:13px">'+instNm+'</div><div class="sl">'+(progNm||'Todos os programas')+'</div></div>';
-  statsHtml+='<div class="stat"><div class="sv">'+d.length+'</div><div class="sl">Certificados</div></div>';
+  statsHtml+='<div class="stat"><div class="sv" id="sv-count">'+d.length+'</div><div class="sl">Certificados</div></div>';
   document.getElementById('stats').innerHTML=statsHtml;
 
-  document.getElementById('th').innerHTML=colsEx.map(function(c){return '<th>'+lbl(c)+'</th>';}).join('');
-  renderLinhas(d,colsEx);
+  canonReRender['th'] = function(){ atualizarView(rowsView.length ? rowsView : rows); };
+  canonRender('th', 'tb', d.map(sisToCanon));
+
   document.getElementById('res').classList.remove('hidden');
   document.getElementById('btn-limpar').style.display='';
-  // Botão XLSX só disponível após múltiplos terminar
+  var _bc = document.getElementById('btn-cols');
+  if(_bc){ _bc.classList.remove('hidden'); _bc.disabled=false; document.getElementById('cols-dd').innerHTML = canonColMenuHTML('cols-dd'); }
+
   iniciarMultiCheck(d);
   if(didEmail&&didSenha) iniciarContatos(d);
 }
 
-function renderLinhas(d,colsEx){
-  if(!colsEx){
-    var src=rowsOrig.length?rowsOrig:d;
-    var cols=COLS.filter(function(c){return src[0]&&(c in src[0]);});
-    colsEx=cols.concat(['Telefone','Email']);
-  }
-  document.getElementById('tb').innerHTML=d.map(function(r,i){
-    var crm=r['CRM']||'';
-    var cache=contatoCache[crm]||{};
-    var tds=colsEx.map(function(c){
-      if(c==='CRM') return '<td style="white-space:nowrap"><span id="b-'+i+'" data-crm="'+crm+'"></span>'+crm+'</td>';
-      if(c==='Telefone') return '<td id="tel-'+i+'">'+(cache.telefone||'')+'</td>';
-      if(c==='Email') return '<td id="eml-'+i+'" style="font-size:11px">'+(cache.email||'')+'</td>';
-      return '<td>'+(r[c]||'')+'</td>';
-    });
-    return '<tr>'+tds.join('')+'</tr>';
-  }).join('');
-}
-
 function atualizarView(d){
   rowsView=d.slice();
-  var src=rowsOrig.length?rowsOrig:d;
-  var cols=COLS.filter(function(c){return src[0]&&(c in src[0]);});
-  renderLinhas(d,cols.concat(['Telefone','Email']));
+  canonRender('th', 'tb', d.map(sisToCanon));
   d.forEach(function(r,i){var crm=r['CRM']||'';if(crmMulti[crm])colocarBadge(crm,[i],crmMulti[crm]);});
-  // Atualiza APENAS o contador de certificados, sem tocar nos outros stats
   var sv=document.getElementById('sv-count');
   if(sv) sv.textContent=d.length;
 }
@@ -1444,17 +1409,11 @@ async function iniciarContatos(d){
           var info=data[crm]||{};
           contatoCache[crm]={
             telefone:info.telefone||'', email:info.email||'',
-            cpf:info.cpf||'', macro:(info.macrorregioes||[]).join(' | ')
+            cpf:info.cpf||'', macro:(info.macrorregioes||[]).join(' | '),
+            especialidades: info.especialidades||[]
           };
-          rows.forEach(function(row,ri){
-            if((row['CRM']||'')===crm){
-              var tel=document.getElementById('tel-'+ri);
-              var eml=document.getElementById('eml-'+ri);
-              if(tel) tel.textContent=contatoCache[crm].telefone;
-              if(eml) eml.textContent=contatoCache[crm].email;
-            }
-          });
         });
+        atualizarView(rowsView.length ? rowsView : rows);
       }
     }catch(e){
       lote.forEach(function(crm){if(!contatoCache[crm])contatoCache[crm]={telefone:'',email:'',cpf:'',macro:''};});
@@ -1475,7 +1434,7 @@ async function iniciarContatos(d){
     if(telDone>=telTotal){
       marcarFim('contatos');
       var btnC = document.getElementById('btn-cols');
-      if(btnC){ btnC.classList.remove('hidden'); btnC.disabled=false; canonColMenuHTML('cols-dd'); }
+      if(btnC){ btnC.classList.remove('hidden'); btnC.disabled=false; document.getElementById('cols-dd').innerHTML = canonColMenuHTML('cols-dd'); }
     }
   }
 }
@@ -1559,24 +1518,20 @@ function exportXL(){
   else _xl();
 }
 function _xl(){
-  var wb=XLSX.utils.book_new();
-  var HDR=['Nº Certificado','Médico','CRM','Programa','Instituição','UF','Início','Término','Emissão do Certificado','Informações Adicionais','Múltiplas Formações','Total Certificações','Telefone','Email'];
-  var dados=rowsView.length?rowsView:rows;
-  var enr=dados.map(function(r){
-    var crm=r['CRM']||'';var total=crmMulti[crm]||1;var ct=contatoCache[crm]||{};
-    var obj={};
-    HDR.forEach(function(col){
-      if(col==='Múltiplas Formações') obj[col]=total>1?'SIM':'NÃO';
-      else if(col==='Total Certificações') obj[col]=total;
-      else if(col==='Telefone') obj[col]=ct.telefone||'';
-      else if(col==='Email') obj[col]=ct.email||'';
-      else obj[col]=r[col]||'';
-    });
+  var dados = rowsView.length ? rowsView : rows;
+  if (!dados.length) return;
+  var vis = canonVisiveis();
+  var HDR = vis.map(function(c){ return c.l; });
+  var enr = dados.map(function(r){
+    var canon = sisToCanon(r);
+    var obj = {};
+    vis.forEach(function(c){ obj[c.l] = canon[c.k] || ''; });
     return obj;
   });
-  var ws=XLSX.utils.json_to_sheet(enr,{header:HDR});
-  XLSX.utils.book_append_sheet(wb,ws,'Certificados');
-  XLSX.writeFile(wb,'certificados_'+Date.now()+'.xlsx');
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(enr, {header: HDR});
+  XLSX.utils.book_append_sheet(wb, ws, 'Certificados');
+  XLSX.writeFile(wb, 'certificados_' + Date.now() + '.xlsx');
 }
 
 // ── Senha ─────────────────────────────────────────────────────────────────────
@@ -3117,6 +3072,7 @@ function reumaAdicionarUF() {
       if (reumaUFsSel.indexOf(slug) < 0) reumaUFsSel.push(slug);
     });
     reumaRenderUFTags();
+    reumaCarregarCidades();
     return;
   }
   if (reumaUFsSel.indexOf(val) >= 0) return;
@@ -3149,13 +3105,20 @@ var reumaCidadesDisp = [];   // cidades disponíveis do estado
 var reumaCidadesSel = [];    // cidades selecionadas (strings exatas da SBR)
 
 async function reumaCarregarCidades() {
-  var estado = reumaUFsSel.length ? reumaUFsSel[reumaUFsSel.length-1] : '';
+  var slug = reumaUFsSel.length ? reumaUFsSel[reumaUFsSel.length-1] : '';
+  var estado = REUMA_UF[slug] || slug;
   var inp = document.getElementById('reuma-cidade-input');
   reumaCidadesDisp = []; reumaCidadesSel = [];
   reumaRenderCidadeTags();
   inp.value = ''; inp.disabled = true;
   document.getElementById('reuma-cidade-dd').style.display = 'none';
   if (!estado) { inp.placeholder = 'Selecione o estado primeiro'; return; }
+  if (estado === '*') {
+    reumaCidadesDisp = [];
+    inp.disabled = true;
+    inp.placeholder = 'Busca ampla em todos os estados';
+    return;
+  }
   inp.placeholder = 'Carregando...';
   try {
     var r = await fetch(API + '/reuma/cidades?estado=' + encodeURIComponent(estado), {headers:getAuthHeaders()});
